@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ConsultBench-3D 协同合作平台使用指南 · 王瑞麟 &amp; 刘俊圆</title>
+  <style>
+    :root {
+      --paper: #F7F5F0;
+      --surface: #FFFFFF;
+      --surface-sunken: #F1EEE8;
+      --border: #E4DFD5;
+      --border-subtle: #EEEAE3;
+      --text-1: #1F1D1A;
+      --text-2: #4F4A43;
+      --text-3: #736D63;
+      --accent: #2B5A8C;
+      --accent-hover: #234A74;
+      --accent-soft: #E9EFF6;
+      --rule: #A8741E;
+      --rule-soft: #FBF4E6;
+      --ai: #6B5CA5;
+      --ai-soft: #EFECF7;
+      --ok: #3D8B5A;
+      --ok-soft: #EAF3EC;
+      --font-sans: "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--text-1);
+      font: 400 14px/1.6 var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 18px 56px; display: grid; gap: 20px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 22px 24px;
+    }
+    .subcard {
+      background: var(--paper); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 14px 16px;
+    }
+    .subcard-white {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 16px;
+    }
+    h1 { margin: 6px 0 8px; font-size: 24px; line-height: 1.3; font-weight: 600; letter-spacing: -0.015em; }
+    h2 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+    h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+    p { margin: 0; }
+    .muted { color: var(--text-3); font-size: 13px; }
+    .mono { font-family: var(--font-mono); font-size: 12.5px; }
+    code {
+      font-family: var(--font-mono); font-size: 12px;
+      background: var(--surface-sunken); padding: 1px 6px; border-radius: 4px; color: var(--text-1);
+    }
+    .row-between { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .badge {
+      display: inline-block; font-family: var(--font-mono); font-size: 12px;
+      padding: 2px 8px; border-radius: 5px; background: var(--surface-sunken); color: var(--text-2);
+    }
+    .seg {
+      display: inline-flex; padding: 3px; background: var(--surface-sunken);
+      border: 1px solid var(--border); border-radius: 8px; gap: 2px;
+    }
+    .seg button {
+      border: 0; background: transparent; color: var(--text-3);
+      padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
+      cursor: pointer; font-family: inherit;
+    }
+    .seg button.active { background: var(--accent); color: #fff; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    @media (max-width: 820px) {
+      .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .card { padding: 18px 16px; }
+    }
+    .btn {
+      border: 1px solid var(--border); background: var(--surface-sunken); color: var(--text-1);
+      padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 500;
+      cursor: pointer; font-family: inherit;
+    }
+    .btn:hover { background: #E7E2D8; }
+    .btn-link { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+    .mode-card {
+      text-align: left; cursor: pointer; font-family: inherit;
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px; transition: all 120ms ease;
+    }
+    .mode-card.active {
+      background: var(--surface-sunken); border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(43, 90, 140, 0.16);
+    }
+    details { background: var(--paper); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px 14px; }
+    summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--text-1); }
+    ol, ul { margin: 6px 0 0; padding-left: 18px; color: var(--text-2); font-size: 13px; }
+    li { margin-bottom: 4px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .toast {
+      position: fixed; right: 24px; bottom: 24px; z-index: 50;
+      background: var(--text-1); color: var(--paper);
+      padding: 8px 14px; border-radius: 8px; font-size: 13px;
+      opacity: 0; pointer-events: none; transition: opacity 150ms ease;
+    }
+    .toast.show { opacity: 1; }
+    .cta-box {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 8px; background: var(--accent); color: #fff;
+      font-size: 13px; font-weight: 500;
+    }
+    .cta-box:hover { background: var(--accent-hover); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- Header -->
+    <section class="card">
+      <div class="row-between" style="align-items:flex-start;">
+        <div style="flex:1;min-width:260px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="badge">ConsultBench-3D</span>
+            <span class="muted">双人 × AI 协同工作台使用说明</span>
+          </div>
+          <h1>刘俊圆 &amp; 王瑞麟 · 合作平台操作指南</h1>
+          <p class="muted" style="font-size:14px;color:var(--text-2);max-width:660px;">
+            这是一套以<strong>工作讨论</strong>为核心、让人与双方 AI（Cursor / Codex / Antigravity）在同一上下文里协同推进的轻量工作台。你在自己的电脑或手机浏览器就能直接打开参与讨论、同步代码并运行测试。
+          </p>
+          <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <a class="cta-box" href="https://sexymonk.github.io/consultbench-console/" target="_blank">打开外网云端控制台 →</a>
+            <button type="button" class="btn" onclick="copyText('https://sexymonk.github.io/consultbench-console/')">复制控制台网址</button>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:6px;">
+          <span class="muted" style="font-size:12px;">切换视角查看步骤</span>
+          <div class="seg">
+            <button type="button" id="role-btn-wang" class="active" onclick="setRole('wang')">我是 王瑞麟 (推荐)</button>
+            <button type="button" id="role-btn-liu" onclick="setRole('liu')">我是 刘俊圆 (fairy)</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="role-quickstart" class="grid-3" style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border-subtle);"></div>
+    </section>
+
+    <!-- Section 1: 3 Channels & Token -->
+    <section class="card">
+      <div class="row-between" style="margin-bottom:14px;">
+        <div>
+          <h2>一、从哪里打开？三条入口与登录凭证说明</h2>
+          <p class="muted">外网、局域网、本机看到的是完全同步的数据（私有仓库 <code>sexymonk/consultbench-3d</code>）。</p>
+        </div>
+        <div class="seg">
+          <button type="button" id="ch-btn-cloud" class="active" onclick="setChannel('cloud')">外网云端</button>
+          <button type="button" id="ch-btn-lan" onclick="setChannel('lan')">同局域网</button>
+          <button type="button" id="ch-btn-local" onclick="setChannel('local')">本机面板</button>
+        </div>
+      </div>
+
+      <div id="channel-detail" class="subcard" style="margin-bottom:14px;"></div>
+
+      <details open>
+        <summary>🔑 登录要填的「凭证」是什么？如何获取（仅需做一次）</summary>
+        <div class="grid-2" style="margin-top:12px;">
+          <div class="subcard-white">
+            <h3>第 1 步：确认仓库协作者权限（第一次接入必看）</h3>
+            <ol>
+              <li>先告诉 <strong>刘俊圆</strong> 你的 GitHub 用户名（刘俊圆在控制台右上角齿轮 →「邀请王瑞麟」输入发送）。</li>
+              <li>去你的 GitHub 通知或绑定邮箱，点击 <strong>Accept invitation</strong> 接受私有仓库 <code>sexymonk/consultbench-3d</code> 邀请。</li>
+            </ol>
+          </div>
+          <div class="subcard-white">
+            <h3>第 2 步：生成你自己的 GitHub Token（即网页上的“凭证”）</h3>
+            <ol>
+              <li>登录 GitHub，打开 <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a>。</li>
+              <li>Note 填 <code>consultbench-3d</code>，Expiration 选 90 days 或不过期。</li>
+              <li><strong>勾选整个 <code>repo</code> 权限组</strong>，点底部 Generate token 并复制生成的 <code>ghp_...</code> 令牌。</li>
+              <li>打开 <a href="https://sexymonk.github.io/consultbench-console/" target="_blank">云端控制台</a> 粘贴进去、选「王瑞麟」即可（勾选“记住登录状态”后下次免输）。</li>
+            </ol>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Section 2: Partner Onboarding -->
+    <section class="card">
+      <h2 style="margin-bottom:4px;">二、王瑞麟如何在自己电脑上 1 分钟接入并跑通项目？</h2>
+      <p class="muted" style="margin-bottom:14px;">不需要安装庞大的 PeriDyno C++ 源码或 CUDA 编译工具链，也不拉取几十 GB 的历史轨迹文件。</p>
+      <div class="grid-3">
+        <div class="subcard">
+          <h3>方式 A：一键引导图形向导（最简单）</h3>
+          <p class="muted" style="margin-top:6px;">
+            从 GitHub Release <code>solver-v2.0-baseline</code> 下载 <code>ConsultBench3D_Partner_Bootstrap.zip</code> 解压到任意文件夹，双击 <code>启动王瑞麟一键接入面板.cmd</code>，填入你的 GitHub Token 后会自动补齐 Git / VC++ 运行库、克隆仓库并下载免编译 3D 求解器包。
+          </p>
+        </div>
+        <div class="subcard">
+          <h3>方式 B：让你的本地 AI 全自动配好</h3>
+          <p class="muted" style="margin-top:6px;">
+            克隆仓库后，把根目录 <code>ONBOARDING_FOR_AI.md</code> 顶部的那段提示词直接复制给 Cursor / Codex / Antigravity，AI 会自动帮你跑完 <code>cb.py setup --auto-fix</code>、<code>verify --lite</code> 与团队规则确认。
+          </p>
+        </div>
+        <div class="subcard">
+          <h3>日常怎么跑测试？</h3>
+          <ul style="margin-top:6px;">
+            <li><strong>平时改代码后</strong>：运行 <code>python cb.py verify --lite</code>（0.2 秒全绿即可，不占显卡）。</li>
+            <li><strong>有 N 卡想跑 3D 仿真</strong>：运行 <code>python cb.py run-bench smoke_fsi</code>，自动适配你的盘符路径并跑通 4 场景闭环物理仿真。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: UI Walkthrough -->
+    <section class="card">
+      <div class="row-between" style="margin-bottom:14px;">
+        <div>
+          <h2>三、页面里每个区域是干什么的？</h2>
+          <p class="muted">全站精简为「协作讨论」「进展与仿真」两个主视图 + 右上角「⚙ 设置抽屉」。</p>
+        </div>
+        <div class="seg">
+          <button type="button" id="ui-btn-discuss" class="active" onclick="setUiTab('discuss')">1. 协作讨论（默认首屏）</button>
+          <button type="button" id="ui-btn-progress" onclick="setUiTab('progress')">2. 进展与仿真</button>
+          <button type="button" id="ui-btn-drawer" onclick="setUiTab('drawer')">3. ⚙ 设置抽屉</button>
+        </div>
+      </div>
+      <div id="ui-walkthrough-box"></div>
+    </section>
+
+    <!-- Section 4: 3-Mode Composer -->
+    <section class="card">
+      <h2 style="margin-bottom:4px;">四、底部的「三合一发言框」怎么用？</h2>
+      <p class="muted" style="margin-bottom:14px;">点选下方三种模式，了解你在讨论框底部切换模式时分别会发生什么：</p>
+      <div class="grid-3" style="margin-bottom:12px;">
+        <button type="button" id="cmp-btn-comment" class="mode-card active" onclick="setComposer('comment')">
+          <h3>1. 讨论（默认）</h3>
+          <p class="muted">两人日常沟通，点亮对方列表未读蓝点。</p>
+        </button>
+        <button type="button" id="cmp-btn-rule" class="mode-card" onclick="setComposer('rule')">
+          <h3>2. 置顶为规则 (G-xxxx)</h3>
+          <p class="muted">讨论定调后升格为团队规则，双方 AI 每次启动必读。</p>
+        </button>
+        <button type="button" id="cmp-btn-ai" class="mode-card" onclick="setComposer('ai')">
+          <h3>3. 让 AI 接手</h3>
+          <p class="muted">直接把上下文派给工作站上的 Codex / Cursor 执行。</p>
+        </button>
+      </div>
+      <div id="composer-detail" class="subcard"></div>
+    </section>
+
+    <!-- Section 5: Playbooks + CLI -->
+    <div class="grid-2">
+      <section class="card">
+        <h2 style="margin-bottom:10px;">五、日常协作怎么配合？（3 个典型场景）</h2>
+        <div style="display:grid;gap:10px;">
+          <details open>
+            <summary>场景 1：进网页先干什么？</summary>
+            <p class="muted" style="margin-top:6px;">看左侧任务栏谁有<strong>未读蓝点</strong> → 点进去看「团队规则」有没有提示「待你确认」（点一下<code>知道了</code>）→ 看底部讨论和勾选「步骤」进度 → 在发言框回复进展。</p>
+          </details>
+          <details>
+            <summary>场景 2：怎么定分工、防撞车？</summary>
+            <p class="muted" style="margin-top:6px;">在问题单（如 <code>CB-003</code>）下先用「讨论」商量各自认领部分；标题下方直接点击<strong>状态</strong>和<strong>负责人</strong>切换为自己；拍板后的边界用「置顶为规则」发一条 <code>G-xxxx</code>，双方 AI 就都不会违背。</p>
+          </details>
+          <details>
+            <summary>场景 3：刘俊圆在 fairy 改完仿真算法怎么同步？</summary>
+            <p class="muted" style="margin-top:6px;">你无需手动拷贝或编译，只需执行 <code>git pull</code>，若发布了新版免编译求解器，打开本机面板「⚙ 环境与同步」点一次「一键补齐」即自动更新并校验。</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row-between" style="margin-bottom:10px;">
+          <h2>六、常用命令行备忘（点右侧复制）</h2>
+        </div>
+        <div id="cli-list" style="display:grid;gap:8px;"></div>
+      </section>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast">已复制到剪贴板</div>
+
+  <script>
+    const ROLE_DATA = {
+      wang: [
+        { step: "1. 接受邀请并准备 GitHub Token", desc: "刘俊圆发送仓库邀请后点击 Accept；在 GitHub Settings 新建勾选 repo 的 PAT 令牌作为登录凭证。" },
+        { step: "2. 1 分钟本地一键接入", desc: "双击引导包里的「启动王瑞麟一键接入面板.cmd」，或把 ONBOARDING_FOR_AI.md 顶部提示词发给本地 AI 自动配完。" },
+        { step: "3. 上平台看规则、认领并讨论", desc: "打开云端控制台（或本机面板），在「协作讨论」点「知道了」确认团队规则、认领任务、勾选步骤并沟通推进。" }
+      ],
+      liu: [
+        { step: "1. 外网随时查看与远程遥控", desc: "在手机或笔记本打开云端控制台，不用远程桌面登录 fairy 就能实时盯 3600 帧进展、看渲染图并预约跑完自动封存基线。" },
+        { step: "2. 邀请王瑞麟接入仓库", desc: "点右上角齿轮 →「邀请王瑞麟加入私有仓库」输入对方 GitHub 用户名发送邀请。" },
+        { step: "3. 讨论定调并置顶 AI 规则", desc: "把协商好的分工、评测标准和禁止触碰的基线用「置顶为规则」锁定，确保双方与各自 AI 严格同步。" }
+      ]
+    };
+
+    const CHANNEL_DATA = {
+      cloud: {
+        title: "☁️ 外网任意设备云端控制台（手机 / iPad / 自己笔记本最常用）",
+        url: "https://sexymonk.github.io/consultbench-console/",
+        auth: "填入你的 GitHub Personal Access Token（具备 repo 权限）",
+        desc: "无需启动本地程序。浏览器直接通过 GitHub HTTPS 读写仓库讨论、拉取高清渲染对比图/MP4，并在需要时远程向 fairy 下达执行指令。"
+      },
+      lan: {
+        title: "🏠 同一校园网 / 局域网直连工作站",
+        url: "http://<工作站局域网IP>:8765/",
+        auth: "填入你的 GitHub Token 或宿主机 .cb_local/lan_token.txt 口令",
+        desc: "在同内网访问（例如在 fairy 运行启动守护时），直接走本地高速通道拉取实时帧状态与渲染视频，不占用 GitHub 请求配额。"
+      },
+      local: {
+        title: "🖥 在自己已克隆仓库的电脑本机打开",
+        url: "http://127.0.0.1:8765/",
+        auth: "本机回环地址免密直连",
+        desc: "在本地仓库根目录运行 python cb.py panel --open 即可弹出面板；本机模式下齿轮抽屉还会开放「8 项系统依赖一键自动补齐」。"
+      }
+    };
+
+    const UI_TABS = {
+      discuss: `
+        <div class="grid-3">
+          <div class="subcard">
+            <h3>左侧 · 任务列表与未读蓝点</h3>
+            <p class="muted" style="margin-top:4px;">按「进行中 / 我负责 / 全部」筛选。右侧出现<strong>墨蓝圆点</strong>表示对方刚回复或刚有新进展，点开即清零；已完成单收纳在底部折叠区。</p>
+          </div>
+          <div class="subcard">
+            <h3>顶部 · 团队规则条 &amp; 可点属性</h3>
+            <p class="muted" style="margin-top:4px;">顶部单行折叠当前生效的团队硬性规则，有未确认项会亮黄点（点「知道了」回执）。标题下方可直接点开修改「状态」与「负责人」。</p>
+          </div>
+          <div class="subcard">
+            <h3>主画布 · 步骤清单 &amp; 统一时间线</h3>
+            <p class="muted" style="margin-top:4px;">可勾选的任务步骤成为双方共同进度条；讨论区把人的发言、被置顶的规则、AI 交接摘要和远程 AI 运行回执按时间排在一条线上。</p>
+          </div>
+        </div>`,
+      progress: `
+        <div class="grid-2">
+          <div class="subcard">
+            <h3>一句话状态 &amp; 2×2 运行矩阵</h3>
+            <p class="muted" style="margin-top:4px;">页面首句用人话写明目前在跑什么、约多久跑完；2×2 矩阵对比两大案例（BE / CN）的 Baseline 与 Defended 当前帧数、进度刻度和 0 飞散粒子状态。</p>
+          </div>
+          <div class="subcard">
+            <h3>物理验证子弹图 &amp; 双轴得分条</h3>
+            <p class="muted" style="margin-top:4px;">严守零虚构原则：子弹图把物理实测误差与红线阈值（≤10% / ≤3%）画在一起；水平堆叠条对比不同策略在信息决策与三维场上的单调区分。</p>
+          </div>
+          <div class="subcard">
+            <h3>暗房渲染画廊（PNG + 动态视频）</h3>
+            <p class="muted" style="margin-top:4px;">仅在此区域使用深黑画框，避免浅色吃掉高光。支持切换两大案例峰值 Cycles OptiX 对比图，点中央播放键可在原位播放动态对比 MP4 并全屏展示。</p>
+          </div>
+          <div class="subcard">
+            <h3>右上角 ⋯ 菜单与页脚自检</h3>
+            <p class="muted" style="margin-top:4px;">「⋯」菜单内仅放经过二次确认的 GPU 远程动作（如 60 帧冒烟自检、跑完自动封存基线）；页脚显示求解器版本号与你改完代码后的「重跑自检」。</p>
+          </div>
+        </div>`,
+      drawer: `
+        <div class="grid-2">
+          <div class="subcard">
+            <h3>身份切换、协作者邀请与跨设备地址</h3>
+            <p class="muted" style="margin-top:4px;">平时完全隐藏不占地方。需要切换凭证、由刘俊圆邀请王瑞麟、查看局域网口令或复制云端入口时点击右上角齿轮即可打开。</p>
+          </div>
+          <div class="subcard">
+            <h3>本机 8 项环境补齐 &amp; 最近远程记录</h3>
+            <p class="muted" style="margin-top:4px;">在本机启动面板时，可展开 8 项依赖检测一键补齐缺失项；下方展示最近 10 条远程执行摘要及可折叠详情，并提供「立即同步」兜底入口。</p>
+          </div>
+        </div>`
+    };
+
+    const COMPOSER_DATA = {
+      comment: {
+        border: "#2B5A8C",
+        title: "普通讨论（默认）",
+        what: "往当前任务单写入一条普通发言并自动推送到仓库，方便双方对齐细节（Ctrl + Enter 快捷发送）。"
+      },
+      rule: {
+        border: "#A8741E",
+        title: "置顶为规则 (G-xxxx)",
+        what: "不仅保留在讨论流里，还会在仓库生成一条团队规则（可选「仅本任务」或「全局规则」）。双方本地和云端的 AI 每次接手任务前都会强制读取并回执。"
+      },
+      ai: {
+        border: "#6B5CA5",
+        title: "让 AI 接手",
+        what: "前端先确认目标电脑是否在线及能力匹配，随后在目标机的 .worktrees/<CB-xxx> 隔离分支唤醒 Codex / Cursor 读取最新讨论并推进，完成后结果回到时间线；也可点「仅复制提示词」自行发给本地 AI。"
+      }
+    };
+
+    const CLI_ITEMS = [
+      { label: "启动本机/局域网面板与远程同步守护", cmd: "python cb.py panel --host 0.0.0.0 --port 8765 --open" },
+      { label: "王瑞麟环境检测与缺项一键补齐", cmd: "python cb.py setup --auto-fix --actor 王瑞麟" },
+      { label: "日常修改后 0.2s 双轴轻量自检", cmd: "python cb.py verify --lite" },
+      { label: "本机跑 4 场景 × 60 帧 3D 双向 FSI 闭环烟雾", cmd: "python cb.py run-bench smoke_fsi" },
+      { label: "查看当前环境工具链与各案例跑数进度", cmd: "python cb.py doctor && python cb.py status" }
+    ];
+
+    function setRole(role) {
+      document.getElementById("role-btn-wang").className = role === "wang" ? "active" : "";
+      document.getElementById("role-btn-liu").className = role === "liu" ? "active" : "";
+      document.getElementById("role-quickstart").innerHTML = ROLE_DATA[role].map(item => `
+        <div class="subcard">
+          <h3>${item.step}</h3>
+          <p class="muted" style="margin-top:4px;">${item.desc}</p>
+        </div>
+      `).join("");
+    }
+
+    function setChannel(ch) {
+      ["cloud", "lan", "local"].forEach(k => {
+        document.getElementById("ch-btn-" + k).className = k === ch ? "active" : "";
+      });
+      const d = CHANNEL_DATA[ch];
+      document.getElementById("channel-detail").innerHTML = `
+        <div class="row-between" style="padding-bottom:10px;border-bottom:1px solid var(--border-subtle);">
+          <strong style="font-size:14px;">${d.title}</strong>
+          <button type="button" class="btn btn-link mono" onclick="copyText('${d.url}')">${d.url} · 复制</button>
+        </div>
+        <div class="grid-2" style="margin-top:10px;">
+          <div class="muted"><strong style="color:var(--text-1);">所需凭证：</strong>${d.auth}</div>
+          <div class="muted"><strong style="color:var(--text-1);">特点说明：</strong>${d.desc}</div>
+        </div>
+      `;
+    }
+
+    function setUiTab(tab) {
+      ["discuss", "progress", "drawer"].forEach(k => {
+        document.getElementById("ui-btn-" + k).className = k === tab ? "active" : "";
+      });
+      document.getElementById("ui-walkthrough-box").innerHTML = UI_TABS[tab];
+    }
+
+    function setComposer(mode) {
+      ["comment", "rule", "ai"].forEach(k => {
+        document.getElementById("cmp-btn-" + k).className = k === mode ? "mode-card active" : "mode-card";
+      });
+      const d = COMPOSER_DATA[mode];
+      document.getElementById("composer-detail").innerHTML = `
+        <div style="border-left:2px solid ${d.border};padding-left:12px;">
+          <strong style="font-size:14px;">${d.title}</strong>
+          <p class="muted" style="margin-top:4px;color:var(--text-2);">${d.what}</p>
+        </div>
+      `;
+    }
+
+    function renderCli() {
+      document.getElementById("cli-list").innerHTML = CLI_ITEMS.map((it, idx) => `
+        <div class="subcard row-between" style="padding:10px 12px;">
+          <div style="min-width:0;flex:1;">
+            <div class="muted" style="font-size:12px;">${it.label}</div>
+            <div class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.cmd}</div>
+          </div>
+          <button type="button" class="btn" onclick="copyText(CLI_ITEMS[${idx}].cmd)">复制</button>
+        </div>
+      `).join("");
+    }
+
+    async function copyText(txt) {
+      try {
+        await navigator.clipboard.writeText(txt);
+        const t = document.getElementById("toast");
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 1600);
+      } catch (_) {}
+    }
+
+    setRole("wang");
+    setChannel("cloud");
+    setUiTab("discuss");
+    setComposer("comment");
+    renderCli();
+  </script>
+</body>
+</html>

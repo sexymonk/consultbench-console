@@ -1,0 +1,2517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ConsultBench-3D · 协同工作台</title>
+  <style>
+    :root {
+      --paper: #F7F5F0;
+      --surface: #FFFFFF;
+      --surface-sunken: #F1EEE8;
+      --surface-selected: #ECE8E0;
+      --border: #E4DFD5;
+      --border-subtle: #EEEAE3;
+      --border-strong: #D3CCBF;
+      --scrim: rgba(31, 29, 26, 0.32);
+
+      --text-1: #1F1D1A;
+      --text-2: #4F4A43;
+      --text-3: #736D63;
+      --text-4: #A39D92;
+      --text-on-accent: #FFFFFF;
+
+      --accent: #2B5A8C;
+      --accent-hover: #234A74;
+      --accent-soft: #E9EFF6;
+      --accent-ring: rgba(43, 90, 140, 0.25);
+
+      --ok: #3D8B5A;
+      --ok-soft: #EAF3EC;
+      --warn: #B7832F;
+      --warn-soft: #FAF1E1;
+      --danger: #C0463B;
+      --danger-soft: #F8E9E6;
+      --neutral: #A39D92;
+      --rule: #A8741E;
+      --rule-soft: #FBF4E6;
+      --ai: #6B5CA5;
+      --ai-soft: #EFECF7;
+
+      --person-liu: #2B5A8C;
+      --person-liu-soft: #E9EFF6;
+      --person-wang: #3D7A6A;
+      --person-wang-soft: #E7F1EE;
+
+      --viz-axis1: #2B5A8C;
+      --viz-axis2: #6FA39C;
+      --viz-track: #ECE8E0;
+      --viz-threshold: #4F4A43;
+
+      --dark-bg: #141413;
+      --dark-surface: #1E1D1B;
+      --dark-border: #2E2C29;
+      --dark-text: #ECE8E1;
+      --dark-text-2: #9C968B;
+
+      --font-sans: "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", sans-serif;
+      --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+
+      --fs-caption: 12px; --lh-caption: 18px;
+      --fs-meta: 13px; --lh-meta: 20px;
+      --fs-body: 14px; --lh-body: 22px;
+      --fs-read: 15px; --lh-read: 26px;
+      --fs-h3: 16px; --lh-h3: 24px;
+      --fs-h2: 20px; --lh-h2: 28px;
+      --fs-h1: 24px; --lh-h1: 32px;
+
+      --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+      --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-12: 48px;
+
+      --r-xs: 4px; --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-full: 999px;
+
+      --shadow-pop: 0 8px 24px rgba(31, 29, 26, 0.10), 0 2px 6px rgba(31, 29, 26, 0.06);
+      --shadow-drawer: -16px 0 40px rgba(31, 29, 26, 0.10);
+      --shadow-composer: 0 -1px 0 var(--border), 0 -8px 24px rgba(31, 29, 26, 0.04);
+
+      --topbar-h: 52px;
+      --sidebar-w: 296px;
+      --canvas-max: 760px;
+      --page-max: 1120px;
+      --drawer-w: 420px;
+      --ease: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--text-1);
+      font: 400 var(--fs-body)/var(--lh-body) var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    .num { font-variant-numeric: tabular-nums lining-nums; }
+    .mono { font-family: var(--font-mono); }
+    .muted { color: var(--text-3); font-size: var(--fs-meta); }
+    .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.85; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    button, input, textarea, select { font-family: inherit; font-size: var(--fs-body); color: inherit; }
+    button { background: transparent; border: 0; padding: 0; cursor: pointer; }
+    :focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+
+    /* Semantic 6px dot */
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex: none; background: var(--neutral); }
+    .dot[data-s="ready"] { background: transparent; box-shadow: inset 0 0 0 1.5px var(--neutral); }
+    .dot[data-s="in_progress"], .dot[data-s="info"] { background: var(--accent); }
+    .dot[data-s="review"], .dot[data-s="ai"] { background: var(--ai); }
+    .dot[data-s="blocked"], .dot[data-s="danger"] { background: var(--danger); }
+    .dot[data-s="done"], .dot[data-s="ok"] { background: var(--ok); }
+    .dot[data-s="warn"], .dot[data-s="rule"] { background: var(--warn); }
+
+    /* Avatars */
+    .avatar {
+      width: 24px; height: 24px; border-radius: var(--r-full);
+      display: inline-grid; place-items: center; flex: none;
+      font-size: 12px; font-weight: 600;
+      background: var(--surface-sunken); color: var(--text-2);
+    }
+    .avatar--sm { width: 20px; height: 20px; font-size: 11px; }
+    .avatar--liu { background: var(--person-liu-soft); color: var(--person-liu); }
+    .avatar--wang { background: var(--person-wang-soft); color: var(--person-wang); }
+    .avatar--ai { background: var(--ai-soft); color: var(--ai); }
+
+    /* Buttons */
+    .btn {
+      height: 32px; padding: 0 var(--sp-3); border-radius: var(--r-sm);
+      font-weight: 500; font-size: var(--fs-body);
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-1);
+      transition: background 120ms var(--ease), border-color 120ms var(--ease);
+    }
+    .btn:hover:not(:disabled) { background: var(--surface-sunken); }
+    .btn:disabled { opacity: 0.48; cursor: not-allowed; }
+    .btn--sm { height: 28px; padding: 0 10px; font-size: var(--fs-meta); }
+    .btn--primary { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
+    .btn--primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn--ghost { border-color: transparent; background: transparent; color: var(--text-2); }
+    .btn--ghost:hover:not(:disabled) { background: var(--surface-sunken); color: var(--text-1); }
+    .btn--text { height: auto; padding: 2px 6px; border: 0; background: transparent; color: var(--accent); font-size: var(--fs-meta); font-weight: 500; border-radius: var(--r-xs); }
+    .btn--text:hover:not(:disabled) { background: var(--accent-soft); }
+
+    .input, .textarea, .select {
+      width: 100%; border: 1px solid var(--border); border-radius: var(--r-sm);
+      background: var(--surface); color: var(--text-1); padding: 7px 10px;
+      font-size: var(--fs-body); transition: border-color 120ms var(--ease);
+    }
+    .input:focus, .textarea:focus, .select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+
+    /* Topbar */
+    .topbar {
+      position: sticky; top: 0; z-index: 30;
+      height: var(--topbar-h); background: rgba(247, 245, 240, 0.92); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--sp-5); gap: var(--sp-4);
+    }
+    .topbar__left { display: flex; align-items: center; gap: var(--sp-6); min-width: 0; }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: var(--text-1); white-space: nowrap; }
+    .brand__mark {
+      width: 22px; height: 22px; border-radius: 5px;
+      border: 1.5px solid var(--text-1);
+      display: grid; place-items: center; font-size: 11px; font-weight: 600; letter-spacing: -0.4px;
+    }
+    .nav { display: flex; align-items: center; gap: var(--sp-5); height: var(--topbar-h); }
+    .nav__tab {
+      position: relative; height: 100%; display: inline-flex; align-items: center;
+      font-size: var(--fs-body); font-weight: 500; color: var(--text-3);
+      transition: color 120ms var(--ease); white-space: nowrap;
+    }
+    .nav__tab:hover { color: var(--text-1); }
+    .nav__tab[aria-selected="true"] { color: var(--text-1); font-weight: 600; }
+    .nav__tab[aria-selected="true"]::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent);
+    }
+
+    .topbar__right { display: flex; align-items: center; gap: var(--sp-3); white-space: nowrap; }
+    .run-mini {
+      display: none; align-items: center; gap: 6px; padding: 4px 10px;
+      border-radius: var(--r-full); background: var(--accent-soft); color: var(--accent);
+      font-size: var(--fs-caption); font-weight: 500;
+    }
+    .run-mini.show { display: inline-flex; }
+    .sync-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 8px; border-radius: var(--r-sm);
+      font-size: var(--fs-caption); color: var(--text-3);
+    }
+    .sync-link:hover { background: var(--surface-sunken); color: var(--text-1); }
+    .sync-link.warn { color: var(--warn); }
+    .icon-btn {
+      width: 32px; height: 32px; border-radius: var(--r-sm);
+      display: grid; place-items: center; color: var(--text-2);
+    }
+    .icon-btn:hover { background: var(--surface-sunken); color: var(--text-1); }
+
+    /* Views */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* View 1: Discuss (Split Workspace) */
+    .discuss-shell {
+      display: flex; min-height: calc(100vh - var(--topbar-h));
+    }
+    .sidebar {
+      width: var(--sidebar-w); flex: none;
+      border-right: 1px solid var(--border);
+      background: var(--paper);
+      padding: var(--sp-4) var(--sp-3);
+      display: flex; flex-direction: column; gap: var(--sp-3);
+    }
+    .sidebar__head { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--sp-1); }
+    .sidebar__title { font-weight: 600; font-size: var(--fs-body); color: var(--text-1); }
+
+    .seg {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+      padding: 2px; background: var(--surface-sunken); border-radius: var(--r-sm);
+    }
+    .seg__btn {
+      height: 26px; border-radius: 5px; font-size: var(--fs-caption); font-weight: 500;
+      color: var(--text-3); transition: all 120ms var(--ease);
+    }
+    .seg__btn[aria-pressed="true"] {
+      background: var(--surface); color: var(--text-1); box-shadow: 0 1px 2px rgba(31, 29, 26, 0.06);
+    }
+
+    .task-list { display: flex; flex-direction: column; gap: 2px; }
+    .task-row {
+      padding: 9px 10px; border-radius: var(--r-md); cursor: pointer;
+      display: flex; flex-direction: column; gap: 3px;
+      transition: background 120ms var(--ease);
+    }
+    .task-row:hover { background: var(--surface-sunken); }
+    .task-row[aria-selected="true"] { background: var(--surface-selected); }
+    .task-row__top { display: flex; align-items: center; gap: 8px; }
+    .task-row__title {
+      flex: 1; min-width: 0; font-weight: 500; font-size: var(--fs-body);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .unread-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+    .task-row__meta {
+      padding-left: 14px; font-size: var(--fs-caption); color: var(--text-3);
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .done-collapse summary {
+      list-style: none; cursor: pointer; padding: 8px 10px;
+      font-size: var(--fs-caption); color: var(--text-3); font-weight: 500;
+      display: flex; align-items: center; gap: 6px; border-radius: var(--r-sm);
+    }
+    .done-collapse summary:hover { background: var(--surface-sunken); color: var(--text-2); }
+    .done-collapse summary::-webkit-details-marker { display: none; }
+
+    /* Discussion Main Canvas */
+    .canvas-wrap {
+      flex: 1; min-width: 0; background: var(--surface);
+      display: flex; flex-direction: column;
+    }
+    .canvas {
+      width: 100%; max-width: var(--canvas-max); margin: 0 auto;
+      padding: var(--sp-5) var(--sp-6) var(--sp-8);
+      flex: 1;
+    }
+    .mobile-back { display: none; align-items: center; gap: 6px; font-size: var(--fs-meta); color: var(--text-2); margin-bottom: var(--sp-3); }
+
+    /* Team Rules Compact Bar */
+    .rules-bar {
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: var(--sp-3); margin-bottom: var(--sp-6);
+    }
+    .rules-bar__toggle {
+      width: 100%; min-height: 36px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 6px 10px; border-radius: var(--r-sm); color: var(--text-2); font-size: var(--fs-meta);
+    }
+    .rules-bar__toggle:hover { background: var(--surface-sunken); }
+    .rules-bar__list { padding: 8px 10px 4px; display: flex; flex-direction: column; gap: 10px; }
+    .rule-item {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      padding: 8px 10px; border-radius: var(--r-sm); background: var(--paper);
+      border-left: 2px solid var(--rule);
+    }
+    .rule-item__body { font-size: var(--fs-meta); color: var(--text-2); margin-top: 2px; line-height: 1.55; }
+
+    /* Task Header */
+    .task-id { font-family: var(--font-mono); font-size: var(--fs-caption); color: var(--text-3); }
+    .task-h1 { margin: 4px 0 10px; font-size: var(--fs-h1); line-height: var(--lh-h1); font-weight: 600; letter-spacing: -0.015em; }
+    .prop-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: var(--sp-4); }
+    .prop {
+      position: relative; display: inline-flex; align-items: center; gap: 6px;
+      height: 28px; padding: 0 9px; border-radius: var(--r-sm);
+      color: var(--text-2); font-size: var(--fs-meta); font-weight: 500;
+      transition: background 120ms var(--ease);
+    }
+    .prop:hover { background: var(--surface-sunken); color: var(--text-1); }
+    .prop--static { cursor: default; color: var(--text-3); font-weight: 400; }
+    .prop--static:hover { background: transparent; color: var(--text-3); }
+    .task-desc { font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-2); margin: 0 0 var(--sp-6); }
+
+    /* Popover Menu */
+    .popover {
+      position: fixed; z-index: 80; min-width: 170px; padding: 4px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+      box-shadow: var(--shadow-pop); display: none;
+    }
+    .popover.open { display: block; }
+    .popover__item {
+      width: 100%; text-align: left; padding: 7px 10px; border-radius: var(--r-xs);
+      display: flex; align-items: center; gap: 8px; font-size: var(--fs-body); color: var(--text-1);
+    }
+    .popover__item:hover { background: var(--surface-sunken); }
+
+    /* Steps Checklist */
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
+    .section-label { font-size: var(--fs-meta); font-weight: 600; color: var(--text-2); }
+    .bar { height: 3px; background: var(--viz-track); border-radius: var(--r-full); overflow: hidden; }
+    .bar > i { display: block; height: 100%; background: var(--accent); transition: width 240ms var(--ease); }
+
+    .steps-block { margin-bottom: var(--sp-8); }
+    .steps-list { margin-top: var(--sp-2); display: flex; flex-direction: column; }
+    .step-row {
+      min-height: 32px; display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 6px; border-radius: var(--r-sm); cursor: pointer;
+    }
+    .step-row:hover { background: var(--paper); }
+    .step-check {
+      width: 16px; height: 16px; margin-top: 3px; border-radius: 4px; flex: none;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      display: grid; place-items: center; color: #fff;
+      transition: all 120ms var(--ease);
+    }
+    .step-row.done .step-check { background: var(--accent); border-color: var(--accent); }
+    .step-text { font-size: var(--fs-body); line-height: 1.55; color: var(--text-1); }
+    .step-row.done .step-text { color: var(--text-3); }
+
+    /* Timeline */
+    .timeline-block { margin-bottom: var(--sp-6); }
+    .timeline { position: relative; padding-left: 36px; margin-top: var(--sp-3); }
+    .timeline::before { content: ""; position: absolute; left: 11px; top: 8px; bottom: 8px; width: 1px; background: var(--border); }
+    .entry { position: relative; padding: 10px 0 14px; }
+    .entry__avatar { position: absolute; left: -36px; top: 10px; }
+    .entry__head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+    .entry__author { font-weight: 600; font-size: var(--fs-body); color: var(--text-1); }
+    .entry__time { font-size: var(--fs-caption); color: var(--text-3); }
+    .entry__rule-tag { font-size: var(--fs-caption); color: var(--rule); font-weight: 500; }
+    .entry__body { font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
+    .entry--rule .entry__body { border-left: 2px solid var(--rule); padding-left: var(--sp-3); }
+    .entry--system { padding: 6px 0 8px; }
+    .entry__sys-line { font-size: var(--fs-caption); color: var(--text-3); display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+    .handoff-details summary {
+      list-style: none; cursor: pointer; font-size: var(--fs-meta); color: var(--text-2);
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; margin-left: -8px; border-radius: var(--r-sm);
+    }
+    .handoff-details summary:hover { background: var(--paper); color: var(--text-1); }
+    .handoff-details summary::-webkit-details-marker { display: none; }
+    .handoff-card { margin-top: 6px; padding: 10px 12px; background: var(--paper); border-radius: var(--r-sm); font-size: var(--fs-meta); color: var(--text-2); }
+
+    /* Sticky Bottom Composer */
+    .composer-dock {
+      position: sticky; bottom: 0; z-index: 20;
+      background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, var(--surface) 18px);
+      padding: 16px var(--sp-6) var(--sp-5);
+    }
+    .composer-inner { max-width: var(--canvas-max); margin: 0 auto; }
+    .composer {
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 2px solid var(--border-strong);
+      border-radius: var(--r-lg); box-shadow: var(--shadow-composer);
+      transition: border-color 180ms var(--ease);
+    }
+    .composer[data-mode="rule"] { border-top-color: var(--rule); }
+    .composer[data-mode="ai"] { border-top-color: var(--ai); }
+    .composer__conflict {
+      display: none; align-items: center; justify-content: space-between;
+      padding: 6px 14px; background: var(--warn-soft); color: var(--warn);
+      font-size: var(--fs-caption); border-bottom: 1px solid var(--border-subtle);
+      border-radius: 10px 10px 0 0;
+    }
+    .composer__conflict.show { display: flex; }
+    .composer__hint {
+      display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      padding: 8px 14px; font-size: var(--fs-caption); color: var(--text-2);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .composer[data-mode="rule"] .composer__hint--rule { display: flex; background: var(--rule-soft); color: var(--rule); }
+    .composer[data-mode="ai"] .composer__hint--ai { display: flex; background: var(--ai-soft); color: var(--ai); }
+    .composer textarea {
+      width: 100%; border: 0; resize: none; min-height: 76px; max-height: 220px;
+      padding: 12px 14px 6px; background: transparent; font-size: var(--fs-read); line-height: 1.6;
+    }
+    .composer textarea:focus { outline: none; box-shadow: none; }
+    .composer__foot {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      padding: 8px 12px 10px;
+    }
+    .mode-pills { display: inline-flex; gap: 2px; background: var(--surface-sunken); padding: 2px; border-radius: var(--r-sm); }
+    .mode-pill {
+      height: 26px; padding: 0 10px; border-radius: 5px; font-size: var(--fs-caption); font-weight: 500;
+      color: var(--text-3); display: inline-flex; align-items: center; gap: 5px;
+    }
+    .mode-pill[aria-pressed="true"] { background: var(--surface); color: var(--text-1); box-shadow: 0 1px 2px rgba(31, 29, 26, 0.06); }
+
+    /* View 2: Progress & Simulation */
+    .progress-page { padding: var(--sp-8) var(--sp-6) 0; max-width: var(--page-max); margin: 0 auto; }
+    .hero-status {
+      display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-4);
+      margin-bottom: var(--sp-6);
+    }
+    .hero-status h2 { margin: 0 0 4px; font-size: var(--fs-h2); line-height: var(--lh-h2); font-weight: 600; }
+    .hero-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: var(--fs-meta); color: var(--text-2); }
+
+    .matrix-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: var(--sp-5) var(--sp-6); margin-bottom: var(--sp-8);
+    }
+    .matrix-grid {
+      display: grid; grid-template-columns: 180px 1fr 1fr; gap: var(--sp-4) var(--sp-6); align-items: center;
+    }
+    .matrix-head { font-size: var(--fs-caption); font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+    .matrix-case-name { font-weight: 600; color: var(--text-1); }
+    .matrix-case-id { font-family: var(--font-mono); font-size: var(--fs-caption); color: var(--text-3); }
+    .run-cell { padding: 10px 12px; border-radius: var(--r-md); background: var(--paper); }
+    .run-cell__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .run-cell__frames { font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: var(--text-1); }
+    .run-cell__state { font-size: var(--fs-caption); color: var(--text-2); display: inline-flex; align-items: center; gap: 5px; }
+    .bar--segmented { position: relative; height: 4px; background: var(--viz-track); border-radius: var(--r-full); overflow: hidden; margin-bottom: 6px; }
+    .bar--segmented > i { display: block; height: 100%; background: var(--accent); }
+    .bar--segmented .ticks {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: repeating-linear-gradient(to right, transparent, transparent calc(16.666% - 1px), rgba(255,255,255,0.65) calc(16.666% - 1px), rgba(255,255,255,0.65) 16.666%);
+    }
+    .run-cell__foot { font-size: var(--fs-caption); color: var(--text-3); display: flex; align-items: center; justify-content: space-between; }
+
+    /* Visualizations Row */
+    .viz-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-6); margin-bottom: var(--sp-12); }
+    .viz-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5) var(--sp-6); }
+    .viz-card h3 { margin: 0 0 var(--sp-4); font-size: var(--fs-h3); font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+
+    .bullet-item { margin-bottom: var(--sp-4); }
+    .bullet-item:last-child { margin-bottom: 0; }
+    .bullet-item__head { display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-meta); margin-bottom: 6px; }
+    .bullet-track { position: relative; height: 8px; background: var(--viz-track); border-radius: 3px; }
+    .bullet-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--viz-axis1); border-radius: 3px; }
+    .bullet-fill--muted { background: var(--neutral); }
+    .bullet-th { position: absolute; top: -4px; bottom: -4px; width: 1.5px; background: var(--viz-threshold); }
+    .bullet-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+    .score-group { margin-bottom: var(--sp-4); }
+    .score-group:last-child { margin-bottom: 0; }
+    .score-group__label { font-size: var(--fs-caption); font-weight: 600; color: var(--text-3); font-family: var(--font-mono); margin-bottom: 6px; }
+    .score-row { display: grid; grid-template-columns: 116px 1fr 48px; gap: 10px; align-items: center; margin-bottom: 6px; font-size: var(--fs-meta); }
+    .score-bar { height: 10px; background: var(--viz-track); border-radius: 3px; overflow: hidden; display: flex; }
+    .score-bar__ax1 { background: var(--viz-axis1); height: 100%; }
+    .score-bar__ax2 { background: var(--viz-axis2); height: 100%; }
+    .score-legend { display: flex; gap: 14px; font-size: var(--fs-caption); color: var(--text-3); margin-top: var(--sp-3); }
+    .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+
+    /* Darkroom Render Gallery */
+    .darkroom { background: var(--dark-bg); color: var(--dark-text); padding: var(--sp-12) var(--sp-6); }
+    .darkroom__inner { max-width: var(--page-max); margin: 0 auto; }
+    .darkroom__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-4); margin-bottom: var(--sp-4); }
+    .darkroom__tabs { display: inline-flex; gap: 4px; padding: 3px; background: var(--dark-surface); border: 1px solid var(--dark-border); border-radius: var(--r-md); }
+    .darkroom__tab { padding: 6px 14px; border-radius: 6px; font-size: var(--fs-meta); color: var(--dark-text-2); font-weight: 500; }
+    .darkroom__tab[aria-pressed="true"] { background: #2D2B28; color: var(--dark-text); }
+    .darkroom__stage {
+      position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden;
+      background: var(--dark-surface); border: 1px solid var(--dark-border);
+    }
+    .darkroom__stage img, .darkroom__stage video { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .darkroom__play {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 52px; height: 52px; border-radius: var(--r-full);
+      background: rgba(255, 255, 255, 0.92); color: var(--dark-bg);
+      display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      transition: transform 120ms var(--ease);
+    }
+    .darkroom__play:hover { transform: translate(-50%, -50%) scale(1.06); }
+    .darkroom__fs {
+      position: absolute; right: 12px; top: 12px; width: 34px; height: 34px;
+      border-radius: var(--r-sm); background: rgba(20, 20, 19, 0.72); color: var(--dark-text);
+      display: grid; place-items: center; border: 1px solid rgba(255,255,255,0.14);
+    }
+    .darkroom__caption { margin-top: var(--sp-3); font-size: var(--fs-caption); color: var(--dark-text-2); display: flex; justify-content: space-between; }
+
+    .skeleton {
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, #1E1D1B 25%, #272522 50%, #1E1D1B 75%);
+      background-size: 200% 100%; animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .progress-footer {
+      max-width: var(--page-max); margin: 0 auto; padding: var(--sp-5) var(--sp-6) var(--sp-12);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-3);
+      font-size: var(--fs-caption); color: var(--text-3);
+    }
+
+    /* Slide-over Drawer */
+    .drawer-backdrop {
+      position: fixed; inset: 0; background: var(--scrim); z-index: 65; display: none;
+    }
+    .drawer-backdrop.open { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: min(var(--drawer-w), 100vw);
+      background: var(--surface); border-left: 1px solid var(--border); box-shadow: var(--shadow-drawer);
+      z-index: 70; transform: translateX(100%); transition: transform 240ms var(--ease);
+      display: flex; flex-direction: column;
+    }
+    .drawer.open { transform: none; }
+    .drawer__head {
+      padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .drawer__body { flex: 1; overflow-y: auto; padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-6); }
+    .drawer-sec h4 { margin: 0 0 8px; font-size: var(--fs-meta); font-weight: 600; color: var(--text-2); }
+    .drawer-box { background: var(--paper); border: 1px solid var(--border-subtle); border-radius: var(--r-md); padding: 12px; }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: var(--scrim); z-index: 90;
+      display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(500px, 100%); max-height: 92vh; overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: var(--sp-6); box-shadow: var(--shadow-pop);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; right: var(--sp-6); bottom: var(--sp-6); z-index: 100;
+      background: var(--text-1); color: var(--paper);
+      padding: 10px 14px; border-radius: var(--r-md); box-shadow: var(--shadow-pop);
+      font-size: var(--fs-meta); display: none; align-items: center; gap: 10px; max-width: min(440px, 90vw);
+    }
+    .toast.show { display: flex; }
+
+    /* Mobile & Tablet Responsive */
+    @media (max-width: 900px) {
+      .topbar { padding: 0 var(--sp-3); }
+      .sidebar { width: 100%; border-right: 0; }
+      .discuss-shell[data-mobile="list"] .canvas-wrap { display: none; }
+      .discuss-shell[data-mobile="detail"] .sidebar { display: none; }
+      .discuss-shell[data-mobile="detail"] .mobile-back { display: inline-flex; }
+      .canvas { padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+      .composer-dock { padding: 12px var(--sp-3) var(--sp-3); }
+      .matrix-grid { grid-template-columns: 1fr; gap: 10px; }
+      .matrix-head { display: none; }
+      .viz-row { grid-template-columns: 1fr; }
+      .progress-page { padding: var(--sp-5) var(--sp-4) 0; }
+      .darkroom { padding: var(--sp-8) var(--sp-4); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Lucide-style inline SVG sprite -->
+  <svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+    <symbol id="i-maximize" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  </svg>
+
+  <!-- Auth Gate Modal -->
+  <div id="auth-modal" class="modal-backdrop">
+    <div class="modal">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div class="brand__mark">CB</div>
+        <div>
+          <div style="font-weight:600;font-size:16px;">ConsultBench-3D 协同工作台</div>
+          <div id="auth-subtitle" class="muted">请使用你的私人访问凭证连接协作仓库</div>
+        </div>
+      </div>
+
+      <div style="display:grid;gap:12px;">
+        <div>
+          <label class="muted" style="display:block;margin-bottom:4px;">协作仓库</label>
+          <input id="auth-repo" class="input" value="sexymonk/consultbench-3d" />
+        </div>
+        <div>
+          <label id="auth-token-label" class="muted" style="display:block;margin-bottom:4px;">GitHub 访问凭证 (Personal Access Token)</label>
+          <input id="auth-token" class="input" type="password" placeholder="粘贴 ghp_... / github_pat_... 或局域网口令" />
+          <details style="margin-top:6px;">
+            <summary class="muted" style="cursor:pointer;">如何获取凭证？</summary>
+            <div style="margin-top:6px;padding:10px;background:var(--paper);border-radius:6px;font-size:12px;color:var(--text-2);line-height:1.6;">
+              1. 登录 GitHub，打开 Settings → Developer settings → Personal access tokens → Fine-grained tokens（建议仅授权本仓库 Contents 与 Issues 读写，或 Classic PAT 勾选 repo）。<br />
+              2. 若在同一校园网/局域网访问宿主机，也可填写工作站生成的 <code>.cb_local/lan_token.txt</code> 口令。
+            </div>
+          </details>
+        </div>
+        <div>
+          <label class="muted" style="display:block;margin-bottom:4px;">你的姓名</label>
+          <select id="auth-actor" class="select">
+            <option value="刘俊圆">刘俊圆</option>
+            <option value="王瑞麟">王瑞麟</option>
+          </select>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer;">
+          <input type="checkbox" id="auth-remember" /> 在此设备记住登录状态（否则关闭标签页后自动清除）
+        </label>
+        <div id="auth-error" style="font-size:13px;color:var(--danger);min-height:18px;"></div>
+        <button class="btn btn--primary" style="width:100%;" data-action="submit-auth">验证凭证并进入工作台</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Shell -->
+  <div id="app" style="display:none;">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="brand">
+          <div class="brand__mark">CB</div>
+          <span>ConsultBench-3D</span>
+        </div>
+        <nav class="nav" role="tablist">
+          <button id="nav-discuss" class="nav__tab" aria-selected="true" data-action="switch-view" data-view="discuss">协作讨论</button>
+          <button id="nav-progress" class="nav__tab" aria-selected="false" data-action="switch-view" data-view="progress">进展与仿真</button>
+        </nav>
+      </div>
+
+      <div class="topbar__right">
+        <button id="run-mini" class="run-mini" data-action="switch-view" data-view="progress" title="查看仿真进展">
+          <span class="dot" data-s="in_progress"></span>
+          <span id="run-mini-text" class="num"></span>
+        </button>
+        <button id="sync-status-btn" class="sync-link" data-action="manual-refresh" title="点击立即同步最新状态">
+          <svg class="icon" style="width:14px;height:14px;"><use href="#i-refresh"/></svg>
+          <span id="sync-status-text">已同步</span>
+        </button>
+        <span id="topbar-avatar" class="avatar" title="当前登录身份">刘</span>
+        <button class="icon-btn" data-action="open-drawer" title="环境与同步设置" aria-label="设置">
+          <svg class="icon"><use href="#i-settings"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- View 1: Collaboration & Discussion -->
+    <section id="view-discuss" class="view active">
+      <div id="discuss-shell" class="discuss-shell" data-mobile="list">
+        <aside class="sidebar">
+          <div class="sidebar__head">
+            <span class="sidebar__title">任务</span>
+            <button class="btn btn--ghost btn--sm" data-action="open-new-task">
+              <svg class="icon"><use href="#i-plus"/></svg> 新建
+            </button>
+          </div>
+
+          <div class="seg" role="group" aria-label="任务筛选">
+            <button class="seg__btn" aria-pressed="true" data-action="filter-tasks" data-filter="open">进行中</button>
+            <button class="seg__btn" aria-pressed="false" data-action="filter-tasks" data-filter="mine">我负责</button>
+            <button class="seg__btn" aria-pressed="false" data-action="filter-tasks" data-filter="all">全部</button>
+          </div>
+
+          <div id="task-list" class="task-list"></div>
+          <details id="done-group" class="done-collapse" style="display:none;">
+            <summary id="done-summary"></summary>
+            <div id="done-list" class="task-list"></div>
+          </details>
+        </aside>
+
+        <main class="canvas-wrap">
+          <div id="discuss-canvas" class="canvas"></div>
+          <div id="composer-dock" class="composer-dock"></div>
+        </main>
+      </div>
+    </section>
+
+    <!-- View 2: Progress & Simulation -->
+    <section id="view-progress" class="view">
+      <div id="progress-top" class="progress-page"></div>
+      <div id="darkroom-wrap"></div>
+      <div id="progress-foot"></div>
+    </section>
+  </div>
+
+  <!-- Popover for clickable Task Status / Owner / Run More Menu -->
+  <div id="popover" class="popover"></div>
+
+  <!-- Right Slide-over Drawer: Environment & Sync -->
+  <div id="drawer-backdrop" class="drawer-backdrop" data-action="close-drawer"></div>
+  <aside id="drawer" class="drawer" aria-label="环境与同步">
+    <div class="drawer__head">
+      <strong style="font-size:15px;">环境与同步</strong>
+      <button class="icon-btn" data-action="close-drawer" aria-label="关闭"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <div id="drawer-body" class="drawer__body"></div>
+  </aside>
+
+  <!-- New Task Modal -->
+  <div id="new-task-modal" class="modal-backdrop">
+    <div class="modal">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <strong style="font-size:16px;">新建任务</strong>
+        <button class="icon-btn" data-action="close-new-task"><svg class="icon"><use href="#i-x"/></svg></button>
+      </div>
+      <div style="display:grid;gap:12px;">
+        <input id="nt-title" class="input" placeholder="一句话说明要解决什么问题" />
+        <textarea id="nt-desc" class="textarea" rows="3" placeholder="背景与验收标准（可选）"></textarea>
+        <textarea id="nt-subs" class="textarea" rows="3" placeholder="拆分步骤，每行一条（可选）"></textarea>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <select id="nt-axis" class="select">
+            <option value="Cross-Axis">Cross-Axis</option>
+            <option value="Axis-1">Axis-1 (信息与决策)</option>
+            <option value="Axis-2">Axis-2 (三维仿真)</option>
+            <option value="Infra">Infra (工程协作)</option>
+          </select>
+          <select id="nt-owner" class="select">
+            <option value="待商定">负责人: 待商定</option>
+            <option value="刘俊圆">刘俊圆</option>
+            <option value="王瑞麟">王瑞麟</option>
+          </select>
+          <select id="nt-case" class="select">
+            <option value="GLOBAL">全局</option>
+            <option value="BE-VES21-30028">BE-VES21-30028</option>
+            <option value="CN-ZZ720-JGT">CN-ZZ720-JGT</option>
+          </select>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer;">
+          <input type="checkbox" id="nt-lite" checked /> 王瑞麟可在轻量模式独立推进（无需 fairy 显卡）
+        </label>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
+          <button class="btn" data-action="close-new-task">取消</button>
+          <button class="btn btn--primary" data-action="submit-new-task">创建任务</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const STATUS_LABELS = {
+      ready: "待开始",
+      in_progress: "进行中",
+      review: "待评审",
+      blocked: "受阻",
+      done: "已完成",
+    };
+
+    const ACTIONS = {
+      verify_lite: { label: "双轴轻量自检", local: "api_action", remote: true, mutating: false },
+      freeze_baseline: { label: "封存完整基线", local: "api_action", remote: true, mutating: true },
+      run_smoke_fsi: { label: "运行 3D 冒烟自检", local: "benchmark:smoke_fsi", remote: true, mutating: true },
+      wake_ai_task: { label: "让 AI 接手任务", local: "remote_only", remote: true, mutating: true },
+      sync_telemetry: { label: "刷新工作站状态", local: "remote_sync", remote: true, mutating: false },
+    };
+
+    let AUTH = {
+      token: sessionStorage.getItem("cb_auth_token") || localStorage.getItem("cb_auth_token") || "",
+      repo: sessionStorage.getItem("cb_gh_repo") || localStorage.getItem("cb_gh_repo") || "sexymonk/consultbench-3d",
+      actor: normalizeActor(sessionStorage.getItem("cb_actor") || localStorage.getItem("cb_actor") || "刘俊圆"),
+    };
+
+    let STATE = null;
+    let ACTIVE_VIEW = "discuss";
+    let TASK_FILTER = "open";
+    let SELECTED_TASK_ID = "CB-001";
+    let COMPOSER_MODE = "comment"; // "comment" | "rule" | "ai"
+    let RULE_SCOPE = "task"; // "task" | "global"
+    let RULES_EXPANDED = false;
+    let DARKROOM_CASE = "BE-VES21-30028";
+    let DARKROOM_PLAYING = false;
+    let LAN_TOKEN_REVEALED = false;
+    let LAST_SYNC_ERROR = null;
+    let REFRESH_TIMER = null;
+    let CLOUD_USER = null;
+    let CLOUD_ISSUES = { telemetryNum: null, cmdNum: null };
+    let CMD_ETAG = null;
+    let CMD_LAST_PAGE = 1;
+    let CMD_CACHE = null;
+
+    const DRAFTS = {};
+    const MEDIA_CACHE = {};
+    const READ_AT = (() => {
+      try { return JSON.parse(localStorage.getItem("cb_read_at") || "{}"); } catch (_) { return {}; }
+    })();
+
+    function normalizeActor(name) {
+      if (name === "\u5e08\u5144") return "刘俊圆";
+      if (name === "\u5e08\u5f1f") return "王瑞麟";
+      return name === "王瑞麟" ? "王瑞麟" : "刘俊圆";
+    }
+
+    function esc(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function svgIcon(name) {
+      return `<svg class="icon"><use href="#i-${esc(name)}"/></svg>`;
+    }
+
+    function avatarHtml(name, small=false) {
+      const n = String(name || "");
+      const cls = n.includes("王") ? "avatar--wang" : (n.includes("刘") ? "avatar--liu" : "avatar--ai");
+      const ch = n.includes("王") ? "王" : (n.includes("刘") ? "刘" : svgIcon("cpu"));
+      return `<span class="avatar ${small ? "avatar--sm" : ""} ${cls}" title="${esc(n)}">${ch}</span>`;
+    }
+
+    function relTime(iso) {
+      if (!iso) return "";
+      const t = Date.parse(iso);
+      if (Number.isNaN(t)) return iso;
+      const sec = Math.max(0, Math.round((Date.now() - t) / 1000));
+      if (sec < 45) return "刚刚";
+      if (sec < 3600) return `${Math.floor(sec / 60)} 分钟前`;
+      if (sec < 86400) return `${Math.floor(sec / 3600)} 小时前`;
+      return `${Math.floor(sec / 86400)} 天前`;
+    }
+
+    function fmtNum(n) {
+      const x = Number(n);
+      return Number.isFinite(x) ? x.toLocaleString("en-US") : "--";
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(showToast._tid);
+      showToast._tid = setTimeout(() => el.classList.remove("show"), 3600);
+    }
+
+    function saveAuthCreds(remember) {
+      const primary = remember ? localStorage : sessionStorage;
+      const other = remember ? sessionStorage : localStorage;
+      other.removeItem("cb_auth_token");
+      other.removeItem("cb_gh_repo");
+      other.removeItem("cb_actor");
+      primary.setItem("cb_auth_token", AUTH.token);
+      primary.setItem("cb_gh_repo", AUTH.repo);
+      primary.setItem("cb_actor", AUTH.actor);
+    }
+
+    function clearAuthCreds() {
+      AUTH.token = "";
+      sessionStorage.removeItem("cb_auth_token");
+      localStorage.removeItem("cb_auth_token");
+    }
+
+    function b64DecodeUtf8(b64) {
+      const bin = atob(String(b64 || "").replace(/\s+/g, ""));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder("utf-8").decode(bytes);
+    }
+
+    function b64EncodeUtf8(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = "";
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+
+    function extractBlockJson(body, tag) {
+      const re = new RegExp(`<!--\\s*${tag}\\s*\\n([\\s\\S]*?)\\n-->`);
+      const m = String(body || "").match(re);
+      if (!m) return null;
+      try { return JSON.parse(m[1]); } catch (_) { return null; }
+    }
+
+    /* ---------------- Unified Capability-Driven Transport ---------------- */
+    async function ghFetch(path, opts={}) {
+      const url = path.startsWith("https://") ? path : ("https://api.github.com" + path);
+      const headers = Object.assign({
+        "Accept": "application/vnd.github+json",
+        "Authorization": "Bearer " + AUTH.token,
+      }, opts.headers || {});
+      const r = await fetch(url, Object.assign({}, opts, { headers }));
+      if (r.status === 304) return { notModified: true, status: 304, headers: r.headers };
+      if (!r.ok) {
+        let msg = "HTTP " + r.status;
+        try {
+          const j = await r.json();
+          if (j && j.message) msg = j.message;
+        } catch (_) {}
+        const err = new Error(msg);
+        err.status = r.status;
+        throw err;
+      }
+      if (opts.rawBlob) return await r.blob();
+      if (opts.withHeaders) {
+        return { data: r.status === 204 ? {} : await r.json(), headers: r.headers, status: r.status };
+      }
+      if (r.status === 204) return {};
+      return await r.json();
+    }
+
+    async function localApi(path, method="GET", body=null, rawBlob=false) {
+      const headers = {};
+      if (!rawBlob) headers["Content-Type"] = "application/json";
+      if (AUTH.token) headers["Authorization"] = "Bearer " + AUTH.token;
+      const opt = { method, headers };
+      if (body !== null) opt.body = JSON.stringify(body);
+      const r = await fetch(path, opt);
+      if (r.status === 401) {
+        clearAuthCreds();
+        openAuthModal("会话已失效，请重新验证凭证。");
+        throw new Error("未授权 (401)");
+      }
+      if (!r.ok) {
+        let msg = "HTTP " + r.status;
+        try { const j = await r.json(); if (j.error || j.message) msg = j.error || j.message; } catch (_) {}
+        const err = new Error(msg);
+        err.status = r.status;
+        throw err;
+      }
+      return rawBlob ? await r.blob() : await r.json();
+    }
+
+    const LocalTransport = {
+      kind: "local_agent",
+      async loadState(forceRemote=false) {
+        return await localApi("/api/state" + (forceRemote ? "?refresh_remote=1" : ""));
+      },
+      async createTask(payload) {
+        const res = await localApi("/api/tasks", "POST", payload);
+        return res.task;
+      },
+      async updateTask(tid, patch) {
+        const res = await localApi("/api/tasks/update", "POST", { task_id: tid, ...patch });
+        return res.task;
+      },
+      async toggleSubtask(tid, idx, done) {
+        const res = await localApi("/api/tasks/update", "POST", { task_id: tid, subtask_index: idx, done });
+        return res.task;
+      },
+      async commentTask(tid, text, opts={}) {
+        return await localApi("/api/tasks/comment", "POST", {
+          task_id: tid,
+          author: AUTH.actor,
+          text,
+          as_directive: !!opts.asDirective,
+          scope: opts.scope === "global" ? "global" : tid,
+          strength: "MUST",
+        });
+      },
+      async ackDirective(did) {
+        return await localApi("/api/directives/ack", "POST", { directive_id: did, actor: AUTH.actor });
+      },
+      async enqueue(target, action, params={}) {
+        return await localApi("/api/remote/command", "POST", { target, action, params, issuer: AUTH.actor });
+      },
+      async runLocalAction(action, params={}) {
+        if (action === "run_smoke_fsi") return await localApi("/api/benchmark/run", "POST", { preset: "smoke_fsi" });
+        if (action === "sync_telemetry") return await localApi("/api/remote/sync", "POST", {});
+        return await localApi("/api/action", "POST", { action, request_id: `${action}-${Date.now()}`, ...params });
+      },
+      async fetchMediaUrl(relPath) {
+        if (MEDIA_CACHE[relPath]) return MEDIA_CACHE[relPath];
+        const apiPath = relPath.startsWith("/renders/")
+          ? relPath
+          : `/renders/${relPath.replace(/^cases\//, "").replace("/renders/", "/")}`;
+        const blob = await localApi(apiPath, "GET", null, true);
+        const url = URL.createObjectURL(blob);
+        MEDIA_CACHE[relPath] = url;
+        return url;
+      },
+    };
+
+    async function ensureCloudIssues() {
+      if (CLOUD_ISSUES.telemetryNum && CLOUD_ISSUES.cmdNum) return CLOUD_ISSUES;
+      const issues = await ghFetch(`/repos/${AUTH.repo}/issues?state=all&per_page=100`);
+      let tNum = null, cNum = null;
+      for (const iss of (Array.isArray(issues) ? issues : [])) {
+        if (iss.pull_request) continue;
+        if (String(iss.title).startsWith("[TELEMETRY]") && !tNum) tNum = iss.number;
+        if (String(iss.title).startsWith("[COMMAND-QUEUE]") && !cNum) cNum = iss.number;
+      }
+      if (!tNum) {
+        const cr = await ghFetch(`/repos/${AUTH.repo}/issues`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: "[TELEMETRY] ConsultBench-3D 多机实时状态与仿真遥测总线", body: "Cloud Telemetry Bus" }),
+        });
+        tNum = cr.number;
+      }
+      if (!cNum) {
+        const cr = await ghFetch(`/repos/${AUTH.repo}/issues`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: "[COMMAND-QUEUE] ConsultBench-3D 远程指令下发与执行回执队列", body: "Cloud Command Bus" }),
+        });
+        cNum = cr.number;
+      }
+      CLOUD_ISSUES = { telemetryNum: tNum, cmdNum: cNum };
+      return CLOUD_ISSUES;
+    }
+
+    function parseLastPageFromLink(linkHeader) {
+      if (!linkHeader) return null;
+      const m = String(linkHeader).match(/[?&]page=(\d+)[^>]*>;\s*rel="last"/);
+      return m ? parseInt(m[1], 10) : null;
+    }
+
+    async function fetchLatestCmdCommentsCloud(issueNum) {
+      const headers = CMD_ETAG ? { "If-None-Match": CMD_ETAG } : {};
+      const r1 = await ghFetch(`/repos/${AUTH.repo}/issues/${issueNum}/comments?per_page=100&page=${CMD_LAST_PAGE}`, { headers, withHeaders: true });
+      if (r1.notModified && CMD_CACHE) return CMD_CACHE;
+      let list = Array.isArray(r1.data) ? r1.data : [];
+      const lastPage = parseLastPageFromLink(r1.headers.get("link"));
+      if (lastPage && lastPage > CMD_LAST_PAGE) {
+        const r2 = await ghFetch(`/repos/${AUTH.repo}/issues/${issueNum}/comments?per_page=100&page=${lastPage}`, { withHeaders: true });
+        CMD_LAST_PAGE = lastPage;
+        list = Array.isArray(r2.data) ? r2.data : [];
+        CMD_ETAG = r2.headers.get("etag");
+      } else {
+        CMD_ETAG = r1.headers.get("etag");
+      }
+      if (CMD_LAST_PAGE > 1 && list.length < 30) {
+        try {
+          const prev = await ghFetch(`/repos/${AUTH.repo}/issues/${issueNum}/comments?per_page=100&page=${CMD_LAST_PAGE - 1}`);
+          if (Array.isArray(prev)) list = prev.slice(-30).concat(list);
+        } catch (_) {}
+      }
+      CMD_CACHE = list;
+      return list;
+    }
+
+    async function ghPutRepoJson(relPath, mutator, message) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const existing = await ghFetch(`/repos/${AUTH.repo}/contents/${relPath}`);
+        const cur = JSON.parse(b64DecodeUtf8(existing.content));
+        const nextObj = mutator(cur);
+        try {
+          await ghFetch(`/repos/${AUTH.repo}/contents/${relPath}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message,
+              content: b64EncodeUtf8(JSON.stringify(nextObj, null, 2) + "\n"),
+              sha: existing.sha,
+            }),
+          });
+          return nextObj;
+        } catch (err) {
+          if (err.status === 409 && attempt < 2) {
+            await new Promise(res => setTimeout(res, 150 + Math.random() * 250));
+            continue;
+          }
+          throw err;
+        }
+      }
+    }
+
+    async function ghCreateRepoJson(prefix, startNum, padWidth, dirPath, buildObj, message) {
+      for (let offset = 0; offset < 6; offset++) {
+        const id = `${prefix}-${String(startNum + offset).padStart(padWidth, "0")}`;
+        const obj = buildObj(id);
+        try {
+          await ghFetch(`/repos/${AUTH.repo}/contents/${dirPath}/${id}.json`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: `${message} (${id})`,
+              content: b64EncodeUtf8(JSON.stringify(obj, null, 2) + "\n"),
+            }),
+          });
+          return obj;
+        } catch (err) {
+          // HTTP 422 means file already exists (atomic create collision): bump ID & retry
+          if ((err.status === 422 || err.status === 409) && offset < 5) continue;
+          throw err;
+        }
+      }
+      throw new Error("编号分配冲突，请刷新后重试。");
+    }
+
+    const CloudTransport = {
+      kind: "github_cloud",
+      async loadState() {
+        const [owner, name] = AUTH.repo.split("/");
+        const gqlQuery = `
+          query($owner: String!, $name: String!) {
+            repository(owner: $owner, name: $name) {
+              directives: object(expression: "HEAD:collab/directives") { ... on Tree { entries { name object { ... on Blob { text } } } } }
+              tasks: object(expression: "HEAD:collab/tasks") { ... on Tree { entries { name object { ... on Blob { text } } } } }
+              releases: object(expression: "HEAD:collab/solver_releases") { ... on Tree { entries { name object { ... on Blob { text } } } } }
+              baseline: object(expression: "HEAD:collab/baselines/latest.json") { ... on Blob { text } }
+              evaluation: object(expression: "HEAD:benchmark/evaluation_results.json") { ... on Blob { text } }
+            }
+          }
+        `;
+        const cp = await ensureCloudIssues();
+        const [gqlRes, tComms, cComms] = await Promise.all([
+          ghFetch("/graphql", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: gqlQuery, variables: { owner, name } }),
+          }),
+          ghFetch(`/repos/${AUTH.repo}/issues/${cp.telemetryNum}/comments?per_page=100`),
+          fetchLatestCmdCommentsCloud(cp.cmdNum),
+        ]);
+
+        const repoNode = (gqlRes.data && gqlRes.data.repository) || {};
+        const parseTree = (treeObj, prefix) => {
+          const out = [];
+          for (const ent of ((treeObj && treeObj.entries) || [])) {
+            if (!ent.name.endsWith(".json") || ent.name === "latest.json") continue;
+            if (prefix && !ent.name.startsWith(prefix)) continue;
+            try { out.push(JSON.parse(ent.object.text)); } catch (_) {}
+          }
+          return out;
+        };
+
+        const dirs = parseTree(repoNode.directives, "G-").sort((a, b) => a.directive_id.localeCompare(b.directive_id));
+        const tasks = parseTree(repoNode.tasks, "CB-").sort((a, b) => a.task_id.localeCompare(b.task_id));
+        const releases = parseTree(repoNode.releases, "");
+        const baseline = repoNode.baseline && repoNode.baseline.text ? JSON.parse(repoNode.baseline.text) : null;
+        const evalRaw = repoNode.evaluation && repoNode.evaluation.text ? JSON.parse(repoNode.evaluation.text) : {};
+
+        let solverLatest = releases.find(r => r.version === (baseline && baseline.solver_version)) || releases[releases.length - 1] || null;
+        for (const ent of ((repoNode.releases && repoNode.releases.entries) || [])) {
+          if (ent.name === "latest.json" && ent.object && ent.object.text) {
+            try { solverLatest = JSON.parse(ent.object.text); } catch (_) {}
+          }
+        }
+
+        const evalSummary = {};
+        for (const [cid, pols] of Object.entries((evalRaw && evalRaw.cases) || {})) {
+          evalSummary[cid] = {};
+          for (const [pname, pdata] of Object.entries(pols || {})) {
+            const ax1 = pdata.axis1_consultation || {};
+            const ax2 = pdata.axis2_physics || {};
+            evalSummary[cid][pname] = {
+              total_score_100: pdata.total_score_100,
+              axis1_score_50: ax1.axis1_score_50,
+              axis2_score_50: ax2.axis2_score_50,
+              rules_fulfilled: `${ax1.rules_fulfilled || 0}/${ax1.rules_total || 0}`,
+            };
+          }
+        }
+
+        const nowMs = Date.now();
+        const machines = [];
+        for (const cm of (Array.isArray(tComms) ? tComms : [])) {
+          const obj = extractBlockJson(cm.body, "cb-telemetry-json");
+          if (!obj) continue;
+          const ts = obj.reported_at ? Date.parse(obj.reported_at) : NaN;
+          const age = Number.isNaN(ts) ? null : Math.max(0, Math.round((nowMs - ts) / 1000));
+          obj.age_seconds = age;
+          obj.online = age !== null && age <= 300;
+          machines.push(obj);
+        }
+        machines.sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+
+        const commands = [];
+        for (const cm of [...(Array.isArray(cComms) ? cComms : [])].reverse()) {
+          const obj = extractBlockJson(cm.body, "cb-cmd-json");
+          if (!obj) continue;
+          obj.comment_id = cm.id;
+          obj.github_author_login = cm.user ? cm.user.login : "";
+          commands.push(obj);
+          if (commands.length >= 25) break;
+        }
+
+        const fairyNode = machines.find(m => String(m.machine_name).toLowerCase() === "fairy" || m.mode === "engine-dev") || machines[0] || null;
+        const baseCases = (baseline && baseline.cases) || {};
+        const beDig = ((baseCases["BE-VES21-30028"] || {}).defended_fsi || {}).input_digest || "";
+        const cnDig = ((baseCases["CN-ZZ720-JGT"] || {}).defended_fsi || {}).input_digest || "";
+
+        return {
+          generated_at: new Date().toISOString(),
+          transport_mode: "github_cloud",
+          profile: { actor: AUTH.actor, mode: "cloud", machine_name: "云端浏览器" },
+          gpu: (fairyNode && fairyNode.gpu) || { available: false },
+          local_runs: (fairyNode && fairyNode.runs) || {},
+          frozen_baseline: baseline,
+          solver_latest: solverLatest,
+          directives: dirs,
+          tasks,
+          evaluation_summary: evalSummary,
+          case_digests: {
+            "BE-VES21-30028": { input_digest: beDig },
+            "CN-ZZ720-JGT": { input_digest: cnDig },
+          },
+          renders: {
+            be_comparison: "cases/be_ves21_30028/renders/be_v2_peak_f3600_cycles_comparison.png",
+            cn_comparison: "cases/cn_zz720_jgt/renders/cn_v2_peak_f3600_cycles_comparison.png",
+            be_video: "cases/be_ves21_30028/renders/be_v2_comparison_cycles.mp4",
+            cn_video: "cases/cn_zz720_jgt/renders/cn_v2_comparison_cycles.mp4",
+          },
+          github_auth: {
+            authenticated: true,
+            login: CLOUD_USER ? CLOUD_USER.login : "",
+            repo: AUTH.repo,
+            repo_permission: (CLOUD_USER && CLOUD_USER.permissions) || {},
+            repo_accessible: true,
+          },
+          console_access: {
+            cloud_url: "https://sexymonk.github.io/consultbench-console/",
+            github_repo: AUTH.repo,
+            lan_urls: machines.flatMap(m => (m.lan_ips || []).map(ip => `http://${ip}:${m.lan_port || 8765}/`)),
+          },
+          remote_fleet: { machines, commands },
+          last_verify: null,
+        };
+      },
+      async createTask(payload) {
+        const maxCb = (STATE.tasks || []).reduce((mx, t) => {
+          const m = String(t.task_id || "").match(/CB-(\d+)/);
+          return m ? Math.max(mx, parseInt(m[1], 10)) : mx;
+        }, 0);
+        const now = new Date().toISOString();
+        return await ghCreateRepoJson("CB", maxCb + 1, 3, "collab/tasks", id => ({
+          task_id: id,
+          title: payload.title,
+          axis: payload.axis,
+          case_id: payload.case_id,
+          status: "ready",
+          priority: "P1",
+          owner: payload.owner,
+          lite_compatible: payload.lite_compatible,
+          created_at: now,
+          updated_at: now,
+          description: payload.description,
+          subtasks: (payload.subtasks || []).map(s => ({ text: s, done: false })),
+          comments: [],
+          handoffs: [],
+        }), "chore(collab): create task");
+      },
+      async updateTask(tid, patch) {
+        return await ghPutRepoJson(`collab/tasks/${tid}.json`, obj => {
+          if (patch.status) obj.status = patch.status;
+          if (patch.owner) obj.owner = patch.owner;
+          obj.updated_at = new Date().toISOString();
+          return obj;
+        }, `chore(collab): update ${tid}`);
+      },
+      async toggleSubtask(tid, idx, done) {
+        return await ghPutRepoJson(`collab/tasks/${tid}.json`, obj => {
+          if (obj.subtasks && obj.subtasks[idx]) obj.subtasks[idx].done = !!done;
+          obj.updated_at = new Date().toISOString();
+          return obj;
+        }, `chore(collab): toggle ${tid}#${idx}`);
+      },
+      async commentTask(tid, text, opts={}) {
+        let dirObj = null;
+        if (opts.asDirective) {
+          const maxG = (STATE.directives || []).reduce((mx, d) => {
+            const m = String(d.directive_id || "").match(/G-(\d+)/);
+            return m ? Math.max(mx, parseInt(m[1], 10)) : mx;
+          }, 0);
+          dirObj = await ghCreateRepoJson("G", maxG + 1, 4, "collab/directives", did => ({
+            directive_id: did,
+            title: text.slice(0, 48),
+            scope: opts.scope === "global" ? "global" : tid,
+            strength: "MUST",
+            author: AUTH.actor,
+            status: "active",
+            supersedes: null,
+            created_at: new Date().toISOString(),
+            body: text,
+            acked_by: { [AUTH.actor]: new Date().toISOString() },
+          }), "chore(collab): publish directive");
+        }
+        const task = await ghPutRepoJson(`collab/tasks/${tid}.json`, obj => {
+          obj.comments = obj.comments || [];
+          obj.comments.push({
+            id: "C-" + String(obj.comments.length + 1).padStart(3, "0"),
+            author: AUTH.actor,
+            role: "human",
+            created_at: new Date().toISOString(),
+            text,
+            directive_id: dirObj ? dirObj.directive_id : null,
+          });
+          obj.updated_at = new Date().toISOString();
+          return obj;
+        }, `chore(collab): comment on ${tid}`);
+        return { ok: true, task, directive: dirObj };
+      },
+      async ackDirective(did) {
+        return await ghPutRepoJson(`collab/directives/${did}.json`, obj => {
+          obj.acked_by = obj.acked_by || {};
+          obj.acked_by[AUTH.actor] = new Date().toISOString();
+          return obj;
+        }, `chore(collab): ack ${did}`);
+      },
+      async enqueue(target, action, params={}) {
+        const cp = await ensureCloudIssues();
+        const cmdObj = {
+          cmd_id: `CMD-${Math.floor(Date.now() / 1000)}-${Math.floor(Math.random() * 900 + 100)}`,
+          target, action, params,
+          issuer: AUTH.actor,
+          issuer_login: (CLOUD_USER && CLOUD_USER.login) || "",
+          status: "queued",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          claimed_by: null, elapsed_s: null, summary: "", output: null,
+        };
+        const body = `### 远程指令 \`${cmdObj.cmd_id}\` · \`${action}\` -> \`@${target}\`\n- 状态: \`queued\` | 下发人: \`${AUTH.actor}\`\n\n<!-- cb-cmd-json\n${JSON.stringify(cmdObj, null, 2)}\n-->\n`;
+        await ghFetch(`/repos/${AUTH.repo}/issues/${cp.cmdNum}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body }),
+        });
+        CMD_ETAG = null;
+        return { ok: true, command: cmdObj };
+      },
+      async fetchMediaUrl(relPath) {
+        if (MEDIA_CACHE[relPath]) return MEDIA_CACHE[relPath];
+        const blob = await ghFetch(`/repos/${AUTH.repo}/contents/${relPath}`, {
+          headers: { "Accept": "application/vnd.github.raw+json" },
+          rawBlob: true,
+        });
+        const url = URL.createObjectURL(blob);
+        MEDIA_CACHE[relPath] = url;
+        return url;
+      },
+    };
+
+    let TRANSPORT = CloudTransport;
+
+    function routeAction(action, target="fairy") {
+      const def = ACTIONS[action];
+      if (!def) return { route: "unavailable", reason: "未登记的动作" };
+      if (TRANSPORT.kind === "local_agent") {
+        const prof = STATE && STATE.profile ? STATE.profile : {};
+        const myName = String(prof.machine_name || "").toLowerCase();
+        const isMe = (target === "fairy" && (myName === "fairy" || prof.mode === "engine-dev"))
+          || (target === "partner" && myName !== "fairy")
+          || target === myName;
+        if (isMe && def.local !== "remote_only") {
+          return { route: "direct", target };
+        }
+      }
+      if (!def.remote) return { route: "unavailable", reason: "仅支持在工作站本机执行" };
+      const machines = (STATE && STATE.remote_fleet && STATE.remote_fleet.machines) || [];
+      const node = machines.find(m => {
+        const mn = String(m.machine_name || "").toLowerCase();
+        if (target === "fairy") return mn === "fairy" || m.mode === "engine-dev";
+        if (target === "partner") return mn !== "fairy";
+        return mn === String(target).toLowerCase();
+      });
+      if (!node || !node.online) return { route: "unavailable", reason: `${target} 当前离线（未收到近期心跳）` };
+      const supported = node.supported_actions;
+      if (Array.isArray(supported) && !supported.includes(action)) {
+        return { route: "unavailable", reason: `${node.machine_name} 版本过旧，不支持此动作` };
+      }
+      return { route: "queued", target };
+    }
+
+    /* ---------------- Boot & Auth ---------------- */
+    function openAuthModal(err="") {
+      document.getElementById("app").style.display = "none";
+      document.getElementById("auth-repo").value = AUTH.repo;
+      document.getElementById("auth-actor").value = AUTH.actor;
+      document.getElementById("auth-error").textContent = err;
+      document.getElementById("auth-subtitle").textContent = TRANSPORT.kind === "local_agent"
+        ? "局域网访问工作站需要验证凭据"
+        : "通过 GitHub API 直连私有协作仓库，凭证仅保存在当前浏览器";
+      document.getElementById("auth-modal").classList.add("open");
+    }
+
+    async function verifyCloudAuth(tok, repo) {
+      const old = AUTH.token;
+      AUTH.token = tok;
+      try {
+        const [u, r] = await Promise.all([ghFetch("/user"), ghFetch(`/repos/${repo}`)]);
+        CLOUD_USER = { login: u.login, name: u.name || u.login, permissions: r.permissions || {} };
+      } catch (e) {
+        AUTH.token = old;
+        throw e;
+      }
+    }
+
+    async function boot() {
+      const isStaticOrigin = location.hostname.endsWith(".github.io") || location.protocol === "file:";
+      if (!isStaticOrigin) {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 2500);
+          const hdrs = AUTH.token ? { "Authorization": "Bearer " + AUTH.token } : {};
+          const r = await fetch("/api/ping", { headers: hdrs, signal: ctrl.signal });
+          clearTimeout(t);
+          if (r.ok) {
+            const ping = await r.json();
+            if (ping.mode === "local_agent") {
+              TRANSPORT = LocalTransport;
+              if (ping.auth_required && !ping.authenticated) {
+                openAuthModal();
+                return;
+              }
+              await enterApp();
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
+      TRANSPORT = CloudTransport;
+      if (!AUTH.token) {
+        openAuthModal();
+        return;
+      }
+      try {
+        await verifyCloudAuth(AUTH.token, AUTH.repo);
+        await enterApp();
+      } catch (e) {
+        openAuthModal("凭证无效或无仓库权限：" + e.message);
+      }
+    }
+
+    async function enterApp() {
+      document.getElementById("auth-modal").classList.remove("open");
+      document.getElementById("app").style.display = "block";
+      await refreshState(true);
+      scheduleAdaptivePoll();
+    }
+
+    async function submitAuth() {
+      const repo = document.getElementById("auth-repo").value.trim() || "sexymonk/consultbench-3d";
+      const tok = document.getElementById("auth-token").value.trim();
+      const actor = normalizeActor(document.getElementById("auth-actor").value);
+      const remember = document.getElementById("auth-remember").checked;
+      const errEl = document.getElementById("auth-error");
+      if (!tok) { errEl.textContent = "请输入访问凭证。"; return; }
+      errEl.textContent = "验证中...";
+      try {
+        if (TRANSPORT.kind === "local_agent") {
+          const r = await fetch("/api/ping", { headers: { "Authorization": "Bearer " + tok } });
+          const p = await r.json();
+          if (!p.authenticated) throw new Error("口令未通过校验。");
+          AUTH.token = tok; AUTH.repo = repo; AUTH.actor = actor;
+          saveAuthCreds(remember);
+          await localApi("/api/profile", "POST", { actor });
+        } else {
+          await verifyCloudAuth(tok, repo);
+          AUTH.token = tok; AUTH.repo = repo; AUTH.actor = actor;
+          saveAuthCreds(remember);
+        }
+        document.getElementById("auth-token").value = "";
+        await enterApp();
+      } catch (e) {
+        errEl.textContent = e.message || String(e);
+      }
+    }
+
+    function scheduleAdaptivePoll() {
+      clearTimeout(REFRESH_TIMER);
+      const cmds = (STATE && STATE.remote_fleet && STATE.remote_fleet.commands) || [];
+      const activeCmd = cmds.some(c => c.status === "queued" || c.status === "running");
+      const activeRun = Object.values((STATE && STATE.local_runs) || {}).some(r => r.status === "IN_PROGRESS_ON_FAIRY");
+      const ms = (activeCmd || activeRun) ? 15000 : 60000;
+      REFRESH_TIMER = setTimeout(async () => {
+        if (!document.hidden && document.getElementById("app").style.display !== "none") {
+          await refreshState(false, true);
+        }
+        scheduleAdaptivePoll();
+      }, ms);
+    }
+
+    async function refreshState(forceRemote=false, silent=false) {
+      try {
+        const prevTask = (STATE && STATE.tasks || []).find(x => x.task_id === SELECTED_TASK_ID);
+        const prevUpdated = prevTask ? prevTask.updated_at : null;
+        STATE = await TRANSPORT.loadState(forceRemote);
+        if (TRANSPORT.kind === "local_agent" && STATE.profile && STATE.profile.actor && !localStorage.getItem("cb_actor") && !sessionStorage.getItem("cb_actor")) {
+          AUTH.actor = normalizeActor(STATE.profile.actor);
+        }
+        LAST_SYNC_ERROR = null;
+        const nextTask = (STATE.tasks || []).find(x => x.task_id === SELECTED_TASK_ID);
+        const remoteEditedWhileTyping = silent && prevUpdated && nextTask && nextTask.updated_at !== prevUpdated
+          && document.getElementById("composer-text") && document.getElementById("composer-text").value.trim().length > 0;
+        renderAll({ preserveComposerFocus: true, showConflictNotice: remoteEditedWhileTyping });
+      } catch (e) {
+        LAST_SYNC_ERROR = e.message || String(e);
+        renderTopbar();
+        if (!silent) showToast("同步失败：" + LAST_SYNC_ERROR);
+      }
+    }
+
+    /* ---------------- Rendering ---------------- */
+    function renderAll(opts={}) {
+      if (!STATE) return;
+      renderTopbar();
+      if (ACTIVE_VIEW === "discuss") {
+        renderDiscussList();
+        renderDiscussCanvas(opts);
+      } else {
+        renderProgressView();
+      }
+      if (document.getElementById("drawer").classList.contains("open")) {
+        renderDrawer();
+      }
+    }
+
+    function renderTopbar() {
+      const av = document.getElementById("topbar-avatar");
+      av.className = "avatar " + (AUTH.actor.includes("王") ? "avatar--wang" : "avatar--liu");
+      av.textContent = AUTH.actor.includes("王") ? "王" : "刘";
+      av.title = `当前身份：${AUTH.actor}`;
+
+      const runs = STATE ? (STATE.local_runs || {}) : {};
+      const activeEntry = Object.entries(runs).find(([, r]) => r.status === "IN_PROGRESS_ON_FAIRY");
+      const mini = document.getElementById("run-mini");
+      if (activeEntry) {
+        const r = activeEntry[1];
+        document.getElementById("run-mini-text").textContent = `fairy ${fmtNum(r.current_frame ?? r.last_audited_frame ?? 0)}/3,600`;
+        mini.classList.add("show");
+      } else {
+        mini.classList.remove("show");
+      }
+
+      const syncBtn = document.getElementById("sync-status-btn");
+      const syncTxt = document.getElementById("sync-status-text");
+      if (LAST_SYNC_ERROR) {
+        syncBtn.classList.add("warn");
+        syncTxt.textContent = "同步异常";
+      } else {
+        syncBtn.classList.remove("warn");
+        syncTxt.textContent = STATE ? `已同步 · ${relTime(STATE.generated_at)}` : "同步中";
+      }
+    }
+
+    function markTaskRead(tid, updatedAt) {
+      if (!tid || !updatedAt) return;
+      READ_AT[tid] = updatedAt;
+      try { localStorage.setItem("cb_read_at", JSON.stringify(READ_AT)); } catch (_) {}
+    }
+
+    function isTaskUnread(t) {
+      const seen = READ_AT[t.task_id];
+      if (!seen) return false;
+      return Date.parse(t.updated_at || "") > Date.parse(seen);
+    }
+
+    function renderDiscussList() {
+      const tasks = STATE.tasks || [];
+      if (tasks.length && !tasks.some(t => t.task_id === SELECTED_TASK_ID)) {
+        SELECTED_TASK_ID = tasks[0].task_id;
+      }
+      const selected = tasks.find(t => t.task_id === SELECTED_TASK_ID);
+      if (selected) markTaskRead(selected.task_id, selected.updated_at);
+
+      const filterFn = t => {
+        if (TASK_FILTER === "mine") return t.owner === AUTH.actor || t.owner === "待商定";
+        return true;
+      };
+
+      const active = tasks.filter(t => t.status !== "done" && filterFn(t));
+      const done = tasks.filter(t => t.status === "done" && filterFn(t));
+
+      const renderRow = t => {
+        const subs = t.subtasks || [];
+        const doneN = subs.filter(s => s.done).length;
+        const unread = isTaskUnread(t) ? `<span class="unread-dot" title="有新回复"></span>` : "";
+        const ownerShort = t.owner === "待商定" ? "待定" : t.owner;
+        return `<div class="task-row" role="button" tabindex="0" aria-selected="${t.task_id === SELECTED_TASK_ID}" data-action="select-task" data-tid="${esc(t.task_id)}">
+          <div class="task-row__top">
+            <span class="dot" data-s="${esc(t.status)}"></span>
+            <span class="task-row__title">${esc(t.title)}</span>
+            ${unread}
+          </div>
+          <div class="task-row__meta num">
+            <span>${esc(t.task_id)}</span>
+            <span>·</span>
+            <span>${esc(ownerShort)}</span>
+            ${subs.length ? `<span>·</span><span>${doneN}/${subs.length}</span>` : ""}
+          </div>
+        </div>`;
+      };
+
+      document.getElementById("task-list").innerHTML = active.length
+        ? active.map(renderRow).join("")
+        : `<div class="muted" style="padding:16px 8px;text-align:center;">暂无符合条件的进行中任务</div>`;
+
+      const doneGroup = document.getElementById("done-group");
+      if (done.length) {
+        doneGroup.style.display = "block";
+        document.getElementById("done-summary").innerHTML = `${svgIcon("chevron-right")} 已完成 (${done.length})`;
+        document.getElementById("done-list").innerHTML = done.map(renderRow).join("");
+      } else {
+        doneGroup.style.display = "none";
+      }
+    }
+
+    function renderDiscussCanvas(opts={}) {
+      const t = (STATE.tasks || []).find(x => x.task_id === SELECTED_TASK_ID);
+      const canvas = document.getElementById("discuss-canvas");
+      const dock = document.getElementById("composer-dock");
+      if (!t) {
+        canvas.innerHTML = `<div class="muted" style="padding:48px 0;text-align:center;">请在左侧选择或新建一个任务</div>`;
+        dock.innerHTML = "";
+        return;
+      }
+
+      // Preserve active composer input text & focus across background syncs
+      const curTextarea = document.getElementById("composer-text");
+      if (curTextarea) DRAFTS[curTextarea.getAttribute("data-tid") || t.task_id] = curTextarea.value;
+      const shouldSkipComposer = opts.preserveComposerFocus && curTextarea && document.activeElement === curTextarea && curTextarea.getAttribute("data-tid") === t.task_id;
+
+      // Active directives relevant to global or this task
+      const activeRules = (STATE.directives || []).filter(d =>
+        String(d.status || "").startsWith("active") && (d.scope === "global" || d.scope === t.task_id)
+      );
+      const unackedCount = activeRules.filter(d =>
+        !Object.keys(d.acked_by || {}).some(k => k.startsWith(AUTH.actor))
+      ).length;
+
+      const rulesHtml = activeRules.length ? `
+        <div class="rules-bar">
+          <button class="rules-bar__toggle" data-action="toggle-rules">
+            <span style="display:inline-flex;align-items:center;gap:8px;">
+              ${unackedCount ? `<span class="dot" data-s="rule"></span>` : svgIcon("pin")}
+              <span>团队规则 · ${activeRules.length} 条生效${unackedCount ? ` · ${unackedCount} 条待你确认` : ""}</span>
+            </span>
+            <svg class="icon"><use href="#i-${RULES_EXPANDED ? "chevron-down" : "chevron-right"}"/></svg>
+          </button>
+          ${RULES_EXPANDED ? `<div class="rules-bar__list">${activeRules.map(d => {
+            const acks = Object.keys(d.acked_by || {});
+            const iAcked = acks.some(k => k.startsWith(AUTH.actor));
+            return `<div class="rule-item">
+              <div style="min-width:0;">
+                <div style="font-size:13px;font-weight:500;">
+                  <span class="mono" style="color:var(--rule);margin-right:6px;">${esc(d.directive_id)}</span>
+                  ${esc(d.title)}
+                </div>
+                <div class="rule-item__body">${esc(d.body)}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex:none;">
+                ${acks.map(k => avatarHtml(k, true)).join("")}
+                ${iAcked ? "" : `<button class="btn--text" data-action="ack-directive" data-did="${esc(d.directive_id)}">知道了</button>`}
+              </div>
+            </div>`;
+          }).join("")}</div>` : ""}
+        </div>` : "";
+
+      const subs = t.subtasks || [];
+      const doneSubs = subs.filter(s => s.done).length;
+      const pct = subs.length ? Math.round((doneSubs / subs.length) * 100) : 0;
+      const stepsHtml = subs.length ? `
+        <div class="steps-block">
+          <div class="section-head">
+            <span class="section-label num">步骤 ${doneSubs} / ${subs.length}</span>
+          </div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+          <div class="steps-list">
+            ${subs.map((s, idx) => `
+              <div class="step-row ${s.done ? "done" : ""}" role="checkbox" aria-checked="${!!s.done}" data-action="toggle-subtask" data-tid="${esc(t.task_id)}" data-idx="${idx}" data-done="${!s.done}">
+                <span class="step-check">${s.done ? svgIcon("check") : ""}</span>
+                <span class="step-text">${esc(s.text)}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>` : "";
+
+      // Merge comments, handoffs, and matching remote AI commands strictly from real timestamps
+      const entries = [];
+      for (const c of (t.comments || [])) {
+        entries.push({ kind: "comment", ts: c.created_at, data: c });
+      }
+      for (const h of (t.handoffs || [])) {
+        entries.push({ kind: "handoff", ts: h.created_at, data: h });
+      }
+      const linkedCmds = ((STATE.remote_fleet && STATE.remote_fleet.commands) || []).filter(cm =>
+        cm.action === "wake_ai_task" && cm.params && cm.params.task_id === t.task_id
+      );
+      for (const cm of linkedCmds) {
+        entries.push({ kind: "ai_cmd", ts: cm.created_at, data: cm });
+      }
+      entries.sort((a, b) => (Date.parse(a.ts || "") || 0) - (Date.parse(b.ts || "") || 0));
+
+      const timelineHtml = `
+        <div class="timeline-block">
+          <div class="section-label">讨论与交接</div>
+          <div class="timeline">
+            ${entries.length ? entries.map(ev => {
+              if (ev.kind === "comment") {
+                const c = ev.data;
+                return `<div class="entry ${c.directive_id ? "entry--rule" : ""}">
+                  <div class="entry__avatar">${avatarHtml(c.author)}</div>
+                  <div class="entry__head">
+                    <span class="entry__author">${esc(c.author)}</span>
+                    <span class="entry__time" title="${esc(c.created_at)}">${esc(relTime(c.created_at))}</span>
+                    ${c.directive_id ? `<span class="entry__rule-tag">已置顶为规则 ${esc(c.directive_id)}</span>` : ""}
+                  </div>
+                  <div class="entry__body">${esc(c.text)}</div>
+                </div>`;
+              }
+              if (ev.kind === "handoff") {
+                const h = ev.data;
+                const dN = (h.done || []).length;
+                const nN = (h.next_steps || []).length;
+                return `<div class="entry entry--ai">
+                  <div class="entry__avatar">${avatarHtml("AI")}</div>
+                  <div class="entry__head">
+                    <span class="entry__author">${esc(h.agent_tool || "AI")}</span>
+                    <span class="entry__time" title="${esc(h.created_at)}">${esc(relTime(h.created_at))}</span>
+                  </div>
+                  <details class="handoff-details">
+                    <summary>${svgIcon("chevron-right")} 提交交接 · 完成 ${dN} 项 · 下一步 ${nN} 项</summary>
+                    <div class="handoff-card">
+                      ${dN ? `<div><strong>已完成：</strong>${esc(h.done.join("；"))}</div>` : ""}
+                      ${(h.evidence || []).length ? `<div style="margin-top:4px;"><strong>验证证据：</strong>${esc(h.evidence.join("；"))}</div>` : ""}
+                      ${nN ? `<div style="margin-top:4px;"><strong>建议下一步：</strong>${esc(h.next_steps.join("；"))}</div>` : ""}
+                    </div>
+                  </details>
+                </div>`;
+              }
+              const cm = ev.data;
+              const stWord = cm.status === "completed" ? "已完成" : (cm.status === "running" ? "运行中" : (cm.status === "failed" ? "失败" : "排队中"));
+              const dotType = cm.status === "completed" ? "ok" : (cm.status === "failed" ? "danger" : "ai");
+              return `<div class="entry entry--system">
+                <div class="entry__avatar"><span class="avatar avatar--ai">${svgIcon("cpu")}</span></div>
+                <div class="entry__sys-line">
+                  <span class="dot" data-s="${dotType}"></span>
+                  <span>已派给 ${esc(cm.target)} · ${esc((cm.params && cm.params.agent) || "AI")} · ${stWord}${cm.elapsed_s ? ` (${cm.elapsed_s}s)` : ""}</span>
+                  <span title="${esc(cm.updated_at)}">${esc(relTime(cm.updated_at || cm.created_at))}</span>
+                </div>
+              </div>`;
+            }).join("") : `<div class="muted" style="padding:12px 0;">暂无讨论。在下方输入第一条想法、决策或让 AI 接手。</div>`}
+          </div>
+        </div>`;
+
+      canvas.innerHTML = `
+        <button class="mobile-back" data-action="mobile-back">${svgIcon("arrow-left")} 返回任务列表</button>
+        ${rulesHtml}
+        <div class="task-id">${esc(t.task_id)}</div>
+        <h1 class="task-h1">${esc(t.title)}</h1>
+        <div class="prop-row">
+          <button class="prop" data-action="pop-status" data-tid="${esc(t.task_id)}">
+            <span class="dot" data-s="${esc(t.status)}"></span>
+            <span>${esc(STATUS_LABELS[t.status] || t.status)}</span>
+            <svg class="icon" style="width:13px;height:13px;"><use href="#i-chevron-down"/></svg>
+          </button>
+          <button class="prop" data-action="pop-owner" data-tid="${esc(t.task_id)}">
+            ${avatarHtml(t.owner, true)}
+            <span>${esc(t.owner)}</span>
+            <svg class="icon" style="width:13px;height:13px;"><use href="#i-chevron-down"/></svg>
+          </button>
+          <span class="prop prop--static">${esc(t.axis)}${t.case_id && t.case_id !== "GLOBAL" ? ` · ${esc(t.case_id)}` : ""}</span>
+          <span class="prop prop--static">${t.lite_compatible ? "王瑞麟轻量环境可做" : "需 fairy 显卡运行"}</span>
+        </div>
+        <p class="task-desc">${esc(t.description)}</p>
+        ${stepsHtml}
+        ${timelineHtml}
+      `;
+
+      if (shouldSkipComposer && opts.showConflictNotice) {
+        const cEl = document.getElementById("composer-conflict");
+        if (cEl) cEl.classList.add("show");
+      }
+      if (!shouldSkipComposer) {
+        const draftVal = DRAFTS[t.task_id] || "";
+        const routeFairy = routeAction("wake_ai_task", "fairy");
+        const routePartner = routeAction("wake_ai_task", "partner");
+        const canSendAi = COMPOSER_MODE !== "ai" || routeFairy.route !== "unavailable" || routePartner.route !== "unavailable";
+        const btnLabel = COMPOSER_MODE === "rule" ? "置顶规则" : (COMPOSER_MODE === "ai" ? "交给 AI" : "发送");
+        const aiSelectedTarget = routeFairy.route !== "unavailable" ? "fairy" : "partner";
+
+        dock.innerHTML = `
+          <div class="composer-inner">
+            <div class="composer" data-mode="${COMPOSER_MODE}">
+              <div id="composer-conflict" class="composer__conflict ${opts.showConflictNotice ? "show" : ""}">
+                <span>对方刚刚更新了此任务，已为你保留当前草稿并刷新讨论流</span>
+                <button class="btn--text" data-action="dismiss-conflict">知道了</button>
+              </div>
+              <div class="composer__hint composer__hint--rule">
+                <span>将作为置顶规则生效，双方 AI 每次启动必读</span>
+                <button class="btn--text" style="color:var(--rule);" data-action="toggle-rule-scope">作用域：${RULE_SCOPE === "global" ? "全局规则" : "仅本任务"} ▾</button>
+              </div>
+              <div class="composer__hint composer__hint--ai">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span>派发给</span>
+                  <select id="ai-target-sel" class="select" style="width:auto;height:26px;padding:0 8px;font-size:12px;">
+                    <option value="fairy" ${aiSelectedTarget==="fairy"?"selected":""} ${routeFairy.route==="unavailable"?"disabled":""}>fairy (刘俊圆主力机${routeFairy.route==="unavailable"?" · 离线":""})</option>
+                    <option value="partner" ${aiSelectedTarget==="partner"?"selected":""} ${routePartner.route==="unavailable"?"disabled":""}>partner (王瑞麟电脑${routePartner.route==="unavailable"?" · 离线":""})</option>
+                  </select>
+                  <select id="ai-agent-sel" class="select" style="width:auto;height:26px;padding:0 8px;font-size:12px;">
+                    <option value="codex">Codex</option>
+                    <option value="cursor">Cursor</option>
+                  </select>
+                </div>
+                <button class="btn--text" style="color:var(--ai);" data-action="copy-ai-prompt" data-tid="${esc(t.task_id)}">${svgIcon("copy")} 仅复制提示词</button>
+              </div>
+              <textarea id="composer-text" data-tid="${esc(t.task_id)}" placeholder="${
+                COMPOSER_MODE === "rule" ? "写下需要双方和 AI 严格遵守的规则或方向..."
+                : (COMPOSER_MODE === "ai" ? "补充你想交给 AI 的具体要求（可选），然后点「交给 AI」..."
+                : "写下讨论回复，或按 Ctrl+Enter 发送...")
+              }">${esc(draftVal)}</textarea>
+              <div class="composer__foot">
+                <div class="mode-pills" role="group" aria-label="发言模式">
+                  <button class="mode-pill" aria-pressed="${COMPOSER_MODE==="comment"}" data-action="set-composer-mode" data-mode="comment">讨论</button>
+                  <button class="mode-pill" aria-pressed="${COMPOSER_MODE==="rule"}" data-action="set-composer-mode" data-mode="rule">${svgIcon("pin")} 置顶为规则</button>
+                  <button class="mode-pill" aria-pressed="${COMPOSER_MODE==="ai"}" data-action="set-composer-mode" data-mode="ai">${svgIcon("cpu")} 让 AI 接手</button>
+                </div>
+                <button class="btn btn--primary btn--sm" data-action="submit-composer" data-tid="${esc(t.task_id)}" ${canSendAi ? "" : "disabled"}>
+                  <span>${btnLabel}</span>
+                  <svg class="icon" style="width:14px;height:14px;"><use href="#i-arrow-up"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    /* ---------------- View 2: Progress & Simulation ---------------- */
+    function renderProgressView() {
+      const top = document.getElementById("progress-top");
+      const dark = document.getElementById("darkroom-wrap");
+      const foot = document.getElementById("progress-foot");
+
+      const machines = (STATE.remote_fleet && STATE.remote_fleet.machines) || [];
+      const fairy = machines.find(m => String(m.machine_name).toLowerCase() === "fairy" || m.mode === "engine-dev") || machines[0] || null;
+      const runs = (fairy && fairy.runs) || STATE.local_runs || {};
+      const g = (fairy && fairy.gpu) || STATE.gpu || {};
+      const baseline = STATE.frozen_baseline || {};
+
+      // Editorial one-sentence status
+      const inProg = Object.entries(runs).find(([, r]) => r.status === "IN_PROGRESS_ON_FAIRY");
+      let heroHeadline = "";
+      let heroSub = "";
+      if (inProg) {
+        const [rk, rv] = inProg;
+        const eta = rv.eta_minutes !== null && rv.eta_minutes !== undefined ? ` · 预计 ${rv.eta_minutes} 分钟后完成` : "";
+        heroHeadline = `fairy 正在运行 ${rk.replace("/", " · ")}`;
+        heroSub = `${fmtNum(rv.current_frame ?? 0)} / ${fmtNum(rv.expected_frames ?? 3600)} 帧 (${rv.progress_pct ?? 0}%)${eta}`;
+      } else {
+        const allComplete = Object.keys(runs).length === 4 && Object.values(runs).every(r => r.status === "COMPLETE_LOCAL");
+        heroHeadline = allComplete
+          ? `fairy 全部 4 组基准仿真均已运行完成`
+          : `当前没有运行中的仿真任务`;
+        heroSub = `最近封存的完整基线为 ${baseline.tag || "暂无"}`;
+      }
+
+      const gpuLine = g.available
+        ? `${g.gpu_name} · 占用 ${g.utilization_pct}% · 显存 ${(g.memory_used_mib / 1024).toFixed(1)}/${(g.memory_total_mib / 1024).toFixed(0)} GB · ${g.temperature_c}°C`
+        : "未检测到活跃显卡";
+      const fairyOnline = fairy && fairy.online;
+
+      const matrixCell = (key) => {
+        const r = runs[key];
+        if (!r) return `<div class="run-cell"><div class="muted">暂无数据</div></div>`;
+        const isDone = r.status === "COMPLETE_LOCAL";
+        const isRun = r.status === "IN_PROGRESS_ON_FAIRY";
+        const cur = isDone ? (r.expected_frames || 3600) : (r.current_frame ?? r.last_audited_frame ?? 0);
+        const tot = r.expected_frames || 3600;
+        const pct = isDone ? 100 : (r.progress_pct ?? Math.round((cur * 100) / tot));
+        const stWord = isDone ? "已完成" : (isRun ? (r.eta_minutes ? `运行中 · 约 ${r.eta_minutes} 分钟` : "运行中") : "未拉取");
+        const stDot = isDone ? "done" : (isRun ? "in_progress" : "ready");
+        const fly = Number(r.max_flying_particles ?? 0);
+        return `<div class="run-cell">
+          <div class="run-cell__top">
+            <span class="run-cell__frames num">${fmtNum(cur)}</span>
+            <span class="run-cell__state"><span class="dot" data-s="${stDot}"></span>${esc(stWord)}</span>
+          </div>
+          <div class="bar--segmented"><i style="width:${pct}%"></i><span class="ticks"></span></div>
+          <div class="run-cell__foot num">
+            <span>目标 ${fmtNum(tot)} 帧</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;${fly > 0 ? "color:var(--danger);font-weight:600;" : ""}">
+              飞散粒子 ${fly} <span class="dot" data-s="${fly === 0 ? "ok" : "danger"}"></span>
+            </span>
+          </div>
+        </div>`;
+      };
+
+      // Physics bullet charts (Zero Fabrication: missing data stays neutral)
+      const gates = baseline.physics_validation_gates || {};
+      const renderBullet = (title, obj, valKey, maxScale, thVal, thLabel, unit="%") => {
+        const hasData = obj && obj[valKey] !== undefined && obj[valKey] !== null;
+        const passed = hasData && obj.passed === true;
+        const val = hasData ? Number(obj[valKey]) : null;
+        const fillW = hasData ? Math.min(100, Math.max(0, (val / maxScale) * 100)) : 0;
+        const thPos = Math.min(100, Math.max(0, (thVal / maxScale) * 100));
+        return `<div class="bullet-item">
+          <div class="bullet-item__head">
+            <span>${esc(title)}</span>
+            <span class="num" style="display:inline-flex;align-items:center;gap:6px;font-weight:500;">
+              ${hasData ? `${val}${unit}` : "暂无数据"}
+              <span class="dot" data-s="${hasData ? (passed ? "ok" : "danger") : "ready"}"></span>
+            </span>
+          </div>
+          <div class="bullet-track">
+            ${hasData ? `<div class="bullet-fill ${passed ? "" : "bullet-fill--muted"}" style="width:${fillW}%"></div>` : ""}
+            <div class="bullet-th" style="left:${thPos}%"></div>
+          </div>
+          <div class="bullet-scale num"><span>0</span><span>阈值 ${thLabel}</span><span>${maxScale}${unit}</span></div>
+        </div>`;
+      };
+
+      const xia = gates.xia_vehicle;
+      const xiaFly = xia && xia.max_flying_particles !== undefined ? xia.max_flying_particles : null;
+      const xiaOk = xia && xia.passed === true && xiaFly === 0;
+
+      // Evaluation stacked horizontal bars (sorted ascending)
+      const evalMap = STATE.evaluation_summary || {};
+      const polLabels = { historical_baseline: "历史真实基线", partial_delayed: "部分滞后应对", statutory_defended: "严格依法防御" };
+      const evalHtml = ["BE-VES21-30028", "CN-ZZ720-JGT"].map(cid => {
+        const entries = Object.entries(evalMap[cid] || {}).sort((a, b) => (a[1].total_score_100 || 0) - (b[1].total_score_100 || 0));
+        if (!entries.length) return `<div class="muted">${esc(cid)} 暂无评测数据</div>`;
+        return `<div class="score-group">
+          <div class="score-group__label">${esc(cid)}</div>
+          ${entries.map(([pname, pinfo]) => `
+            <div class="score-row">
+              <span style="color:var(--text-2);font-size:12px;">${esc(polLabels[pname] || pname)}</span>
+              <div class="score-bar" title="Axis 1: ${pinfo.axis1_score_50} + Axis 2: ${pinfo.axis2_score_50}">
+                <div class="score-bar__ax1" style="width:${Math.max(0, Math.min(100, Number(pinfo.axis1_score_50 || 0)))}%"></div>
+                <div class="score-bar__ax2" style="width:${Math.max(0, Math.min(100, Number(pinfo.axis2_score_50 || 0)))}%"></div>
+              </div>
+              <span class="num" style="text-align:right;font-weight:500;">${pinfo.total_score_100 ?? "--"}</span>
+            </div>
+          `).join("")}
+        </div>`;
+      }).join("");
+
+      top.innerHTML = `
+        <div class="hero-status">
+          <div>
+            <h2>${esc(heroHeadline)}</h2>
+            <div class="muted">${esc(heroSub)}</div>
+          </div>
+          <div class="hero-meta">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              <span class="dot" data-s="${fairyOnline ? "ok" : "warn"}"></span>
+              <span>fairy ${fairyOnline ? "在线" : "快照"}</span>
+            </span>
+            <span>·</span>
+            <span class="num">${esc(gpuLine)}</span>
+            <button class="icon-btn" data-action="sync-fairy-telem" title="刷新工作站状态">${svgIcon("refresh")}</button>
+            <button class="icon-btn" data-action="pop-run-menu" title="工作站操作">${svgIcon("more")}</button>
+          </div>
+        </div>
+
+        <div class="matrix-card">
+          <div class="matrix-grid">
+            <div class="matrix-head">案例场景</div>
+            <div class="matrix-head">Baseline 真实灾情</div>
+            <div class="matrix-head">Defended 依法防御</div>
+
+            <div>
+              <div class="matrix-case-name">Pont de Bellevaux</div>
+              <div class="matrix-case-id">BE-VES21-30028</div>
+            </div>
+            ${matrixCell("be_ves21_30028/baseline")}
+            ${matrixCell("be_ves21_30028/defended")}
+
+            <div>
+              <div class="matrix-case-name">郑州京广北路隧道</div>
+              <div class="matrix-case-id">CN-ZZ720-JGT</div>
+            </div>
+            ${matrixCell("cn_zz720_jgt/baseline")}
+            ${matrixCell("cn_zz720_jgt/defended")}
+          </div>
+        </div>
+
+        <div class="viz-row">
+          <div class="viz-card">
+            <h3><span>物理验证门槛</span></h3>
+            ${renderBullet("Kleefsman 溃坝冲击 NRMSE", gates.kleefsman, "suite_value_pct", 15, 10, "≤ 10%")}
+            ${renderBullet("Archimedes 双向浮力 MAE", gates.archimedes, "suite_mae_pct", 5, 3, "≤ 3%")}
+            <div class="bullet-item">
+              <div class="bullet-item__head">
+                <span>Xia (2011) 车辆起漂 · 飞散粒子</span>
+                <span class="num" style="display:inline-flex;align-items:center;gap:6px;font-weight:500;">
+                  ${xiaFly !== null ? `${xiaFly}${xia && xia.audited_traj_frames ? ` (${xia.audited_traj_frames} 帧)` : ""}` : "暂无数据"}
+                  <span class="dot" data-s="${xiaFly !== null ? (xiaOk ? "ok" : "danger") : "ready"}"></span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="viz-card">
+            <h3><span>双轴评测闭环得分</span><span class="muted">满分 100</span></h3>
+            ${evalHtml}
+            <div class="score-legend">
+              <span><i class="swatch" style="background:var(--viz-axis1)"></i>Axis 1 信息与决策</span>
+              <span><i class="swatch" style="background:var(--viz-axis2)"></i>Axis 2 三维流固耦合场</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const solver = STATE.solver_latest || {};
+      const beDig = ((STATE.case_digests && STATE.case_digests["BE-VES21-30028"]) || {}).input_digest || "";
+      const cnDig = ((STATE.case_digests && STATE.case_digests["CN-ZZ720-JGT"]) || {}).input_digest || "";
+
+      dark.innerHTML = `
+        <div class="darkroom">
+          <div class="darkroom__inner">
+            <div class="darkroom__head">
+              <strong style="font-size:16px;font-weight:600;">三维渲染对比</strong>
+              <div class="darkroom__tabs">
+                <button class="darkroom__tab" aria-pressed="${DARKROOM_CASE==="BE-VES21-30028"}" data-action="darkroom-case" data-case="BE-VES21-30028">Pont de Bellevaux</button>
+                <button class="darkroom__tab" aria-pressed="${DARKROOM_CASE==="CN-ZZ720-JGT"}" data-action="darkroom-case" data-case="CN-ZZ720-JGT">京广北路隧道</button>
+              </div>
+            </div>
+            <div id="darkroom-stage" class="darkroom__stage">
+              <div class="skeleton"></div>
+            </div>
+            <div class="darkroom__caption">
+              <span>Cycles OptiX${baseline.tag ? ` · 基线 ${esc(baseline.tag)}` : ""}</span>
+              <span>${DARKROOM_PLAYING ? "动态孪生视频" : "峰值时刻对比图"}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      loadDarkroomStage();
+
+      const lv = STATE.last_verify;
+      const verifyText = lv
+        ? (lv.passed ? `双轴自检通过 (${lv.elapsed_s}s)` : "双轴自检未通过")
+        : "双轴自检：未在本次运行";
+      const relDate = solver.released_at ? String(solver.released_at).slice(0, 10) : "--";
+      foot.innerHTML = `
+        <div class="progress-footer">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;" class="num">
+            <span>求解器 ${esc(solver.version || "--")} · ${esc(relDate)}</span>
+            ${beDig ? `<button class="btn--text mono" style="color:var(--text-3);" data-action="copy-text" data-val="${esc(beDig)}">BE ${esc(beDig.slice(0, 8))} ${svgIcon("copy")}</button>` : ""}
+            ${cnDig ? `<button class="btn--text mono" style="color:var(--text-3);" data-action="copy-text" data-val="${esc(cnDig)}">CN ${esc(cnDig.slice(0, 8))} ${svgIcon("copy")}</button>` : ""}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>${esc(verifyText)}</span>
+            <button class="btn--text" data-action="rerun-verify-lite">${svgIcon("refresh")} 重跑自检</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadDarkroomStage() {
+      const stage = document.getElementById("darkroom-stage");
+      if (!stage || !STATE || !STATE.renders) return;
+      const isBe = DARKROOM_CASE === "BE-VES21-30028";
+      const path = DARKROOM_PLAYING
+        ? (isBe ? STATE.renders.be_video : STATE.renders.cn_video)
+        : (isBe ? STATE.renders.be_comparison : STATE.renders.cn_comparison);
+      try {
+        const url = await TRANSPORT.fetchMediaUrl(path);
+        if (DARKROOM_PLAYING) {
+          stage.innerHTML = `
+            <video src="${url}" controls autoplay loop playsinline></video>
+            <button class="darkroom__fs" data-action="darkroom-toggle-play" title="返回对比大图">${svgIcon("x")}</button>
+          `;
+        } else {
+          stage.innerHTML = `
+            <img src="${url}" alt="${esc(DARKROOM_CASE)}" />
+            <button class="darkroom__play" data-action="darkroom-toggle-play" title="播放 Cycles 动态对比视频">${svgIcon("play")}</button>
+            <button class="darkroom__fs" data-action="darkroom-fullscreen" title="全屏查看">${svgIcon("maximize")}</button>
+          `;
+        }
+      } catch (e) {
+        stage.innerHTML = `<div style="height:100%;display:grid;place-items:center;color:var(--dark-text-2);font-size:13px;">媒体暂无法加载：${esc(e.message)}</div>`;
+      }
+    }
+
+    /* ---------------- Slide-over Drawer ---------------- */
+    function renderDrawer() {
+      const gh = STATE.github_auth || {};
+      const acc = STATE.console_access || {};
+      const prov = STATE.provision || null;
+      const cmds = ((STATE.remote_fleet && STATE.remote_fleet.commands) || []).slice(0, 10);
+      const isLiu = AUTH.actor === "刘俊圆";
+      const lanUrl = (acc.lan_urls && acc.lan_urls[0]) || "";
+      const lanTok = acc.lan_token || "";
+
+      const provHtml = prov ? `
+        <div class="drawer-sec">
+          <h4>本机运行环境</h4>
+          <div class="drawer-box">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span style="font-size:13px;">
+                ${prov.ready_for_full_simulation ? "Lite 与全量 3D 仿真均已就绪" : (prov.ready_for_lite ? `Lite 就绪 · 完整仿真缺 ${prov.missing_required_count} 项` : `缺少 ${prov.missing_required_count} 项必备依赖`)}
+              </span>
+              <button class="btn--text" data-action="auto-fix-all">一键补齐</button>
+            </div>
+            <details style="margin-top:8px;">
+              <summary class="muted" style="cursor:pointer;">查看 8 项检测明细</summary>
+              <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+                ${(prov.items || []).map(it => {
+                  const st = it.status === "ok" ? "ok" : (it.status === "missing" ? "danger" : "warn");
+                  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;">
+                    <span style="display:inline-flex;align-items:center;gap:6px;"><span class="dot" data-s="${st}"></span>${esc(it.title)}</span>
+                    ${it.can_auto_fix && it.fix_action ? `<button class="btn--text" data-action="fix-item" data-fix="${esc(it.fix_action)}">补齐</button>` : `<span class="muted">${it.status === "ok" ? "就绪" : "跳过"}</span>`}
+                  </div>`;
+                }).join("")}
+              </div>
+            </details>
+          </div>
+        </div>` : "";
+
+      document.getElementById("drawer-body").innerHTML = `
+        <div class="drawer-sec">
+          <h4>身份与连接通道</h4>
+          <div class="drawer-box" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              ${avatarHtml(AUTH.actor)}
+              <div>
+                <div style="font-weight:600;font-size:14px;">${esc(AUTH.actor)}</div>
+                <div class="muted" style="font-size:12px;">${TRANSPORT.kind === "github_cloud" ? `GitHub 云端 · @${esc(gh.login || "--")}` : `工作站直连 · ${esc(STATE.profile && STATE.profile.machine_name)}`}</div>
+              </div>
+            </div>
+            <button class="btn btn--sm" data-action="logout">切换凭证</button>
+          </div>
+        </div>
+
+        ${isLiu ? `
+        <div class="drawer-sec">
+          <h4>邀请王瑞麟加入私有仓库</h4>
+          <div class="drawer-box" style="display:grid;gap:8px;">
+            <div style="display:flex;gap:8px;">
+              <input id="invite-username" class="input" placeholder="输入王瑞麟的 GitHub 用户名" />
+              <button class="btn btn--primary" style="flex:none;" data-action="invite-collab">邀请</button>
+            </div>
+            <details>
+              <summary class="muted" style="cursor:pointer;">第 2 步：发送一键接入引导提示词</summary>
+              <div style="margin-top:8px;font-size:12px;color:var(--text-2);background:var(--surface);padding:8px;border-radius:6px;border:1px solid var(--border-subtle);">
+                让王瑞麟接受仓库邀请后，下载 Release 中的 <code>ConsultBench3D_Partner_Bootstrap.zip</code> 并双击 <code>启动王瑞麟一键接入面板.cmd</code>，或在浏览器直接打开云端地址。
+              </div>
+            </details>
+          </div>
+        </div>` : ""}
+
+        <div class="drawer-sec">
+          <h4>跨设备访问入口</h4>
+          <div class="drawer-box" style="display:grid;gap:8px;font-size:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="mono" style="overflow:hidden;text-overflow:ellipsis;">${esc(acc.cloud_url || "")}</span>
+              <button class="btn--text" data-action="copy-text" data-val="${esc(acc.cloud_url || "")}">复制</button>
+            </div>
+            ${lanUrl ? `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="mono">${esc(lanUrl)}</span>
+              <button class="btn--text" data-action="copy-text" data-val="${esc(lanUrl)}">复制</button>
+            </div>` : ""}
+            ${lanTok ? `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="mono">LAN 口令：${LAN_TOKEN_REVEALED ? esc(lanTok) : "••••••••••••"}</span>
+              <span>
+                <button class="btn--text" data-action="toggle-lan-tok">${LAN_TOKEN_REVEALED ? "隐藏" : "显示"}</button>
+                <button class="btn--text" data-action="copy-text" data-val="${esc(lanTok)}">复制</button>
+              </span>
+            </div>` : ""}
+          </div>
+        </div>
+
+        ${provHtml}
+
+        <div class="drawer-sec">
+          <h4 style="display:flex;justify-content:space-between;align-items:center;">
+            <span>最近远程操作</span>
+            <button class="btn--text" data-action="manual-refresh">立即同步</button>
+          </h4>
+          <div class="drawer-box" style="display:flex;flex-direction:column;gap:8px;">
+            ${cmds.length ? cmds.map(c => {
+              const dt = c.status === "completed" ? "ok" : (c.status === "failed" ? "danger" : (c.status === "running" ? "in_progress" : "ai"));
+              const lbl = (ACTIONS[c.action] && ACTIONS[c.action].label) || c.action;
+              return `<div style="font-size:12px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><span class="dot" data-s="${dt}"></span>${esc(lbl)} → ${esc(c.target)}</span>
+                  <span class="muted" style="font-size:11px;">${esc(relTime(c.updated_at || c.created_at))}</span>
+                </div>
+                ${c.summary ? `<div class="muted" style="padding-left:12px;font-size:12px;">${esc(c.summary)}</div>` : ""}
+                ${c.output ? `<details style="padding-left:12px;margin-top:2px;"><summary class="muted" style="cursor:pointer;font-size:11px;">详情</summary><pre style="margin:4px 0 0;padding:6px;background:var(--surface);border-radius:4px;font-size:11px;max-height:140px;overflow:auto;">${esc(JSON.stringify(c.output, null, 2))}</pre></details>` : ""}
+              </div>`;
+            }).join("") : `<div class="muted" style="font-size:12px;">暂无记录</div>`}
+          </div>
+        </div>
+      `;
+    }
+
+    /* ---------------- Unified Action Dispatch & Popovers ---------------- */
+    async function dispatchAction(action, params={}, target="fairy") {
+      const route = routeAction(action, target);
+      if (route.route === "unavailable") {
+        showToast(route.reason);
+        return null;
+      }
+      if (route.route === "direct") {
+        showToast(`正在执行 ${ACTIONS[action].label}...`);
+        const res = await TRANSPORT.runLocalAction(action, params);
+        showToast(res.summary || `${ACTIONS[action].label} 完成`);
+        await refreshState(true);
+        return res;
+      }
+      const res = await TRANSPORT.enqueue(route.target, action, params);
+      showToast(`已派发给 ${route.target}，稍后自动回传结果`);
+      await refreshState(true);
+      scheduleAdaptivePoll();
+      return res;
+    }
+
+    function openPopover(anchorEl, items) {
+      const pop = document.getElementById("popover");
+      pop.innerHTML = items.map((it, i) => `
+        <button class="popover__item" data-pop-idx="${i}" ${it.disabled ? "disabled style='opacity:0.45;cursor:not-allowed;'" : ""}>
+          ${it.dot ? `<span class="dot" data-s="${esc(it.dot)}"></span>` : ""}
+          <span>${esc(it.label)}</span>
+        </button>
+      `).join("");
+      const rect = anchorEl.getBoundingClientRect();
+      pop.style.left = Math.min(rect.left, window.innerWidth - 200) + "px";
+      pop.style.top = (rect.bottom + 4) + "px";
+      pop.classList.add("open");
+      pop._handlers = items.map(it => it.onClick);
+    }
+
+    function closePopover() {
+      document.getElementById("popover").classList.remove("open");
+    }
+
+    /* ---------------- Event Delegation ---------------- */
+    document.addEventListener("click", async e => {
+      const popBtn = e.target.closest("[data-pop-idx]");
+      if (popBtn) {
+        const pop = document.getElementById("popover");
+        const fn = pop._handlers && pop._handlers[Number(popBtn.getAttribute("data-pop-idx"))];
+        closePopover();
+        if (fn) await fn();
+        return;
+      }
+      if (!e.target.closest("#popover") && !e.target.closest('[data-action^="pop-"]')) {
+        closePopover();
+      }
+
+      const actEl = e.target.closest("[data-action]");
+      if (!actEl) return;
+      const action = actEl.getAttribute("data-action");
+
+      if (action === "submit-auth") { await submitAuth(); return; }
+      if (action === "switch-view") {
+        ACTIVE_VIEW = actEl.getAttribute("data-view");
+        document.getElementById("nav-discuss").setAttribute("aria-selected", ACTIVE_VIEW === "discuss");
+        document.getElementById("nav-progress").setAttribute("aria-selected", ACTIVE_VIEW === "progress");
+        document.getElementById("view-discuss").classList.toggle("active", ACTIVE_VIEW === "discuss");
+        document.getElementById("view-progress").classList.toggle("active", ACTIVE_VIEW === "progress");
+        renderAll();
+        return;
+      }
+      if (action === "open-drawer") {
+        document.getElementById("drawer-backdrop").classList.add("open");
+        document.getElementById("drawer").classList.add("open");
+        renderDrawer();
+        return;
+      }
+      if (action === "close-drawer") {
+        document.getElementById("drawer-backdrop").classList.remove("open");
+        document.getElementById("drawer").classList.remove("open");
+        return;
+      }
+      if (action === "manual-refresh") {
+        showToast("正在同步...");
+        await refreshState(true);
+        showToast("已更新到最新状态");
+        return;
+      }
+      if (action === "filter-tasks") {
+        TASK_FILTER = actEl.getAttribute("data-filter");
+        document.querySelectorAll('[data-action="filter-tasks"]').forEach(b => b.setAttribute("aria-pressed", b === actEl));
+        renderDiscussList();
+        return;
+      }
+      if (action === "select-task") {
+        SELECTED_TASK_ID = actEl.getAttribute("data-tid");
+        document.getElementById("discuss-shell").setAttribute("data-mobile", "detail");
+        renderDiscussList();
+        renderDiscussCanvas();
+        return;
+      }
+      if (action === "mobile-back") {
+        document.getElementById("discuss-shell").setAttribute("data-mobile", "list");
+        return;
+      }
+      if (action === "toggle-rules") {
+        RULES_EXPANDED = !RULES_EXPANDED;
+        renderDiscussCanvas({ preserveComposerFocus: true });
+        return;
+      }
+      if (action === "ack-directive") {
+        const did = actEl.getAttribute("data-did");
+        await TRANSPORT.ackDirective(did);
+        showToast(`已确认知晓规则 ${did}`);
+        await refreshState(false);
+        return;
+      }
+      if (action === "toggle-subtask") {
+        const tid = actEl.getAttribute("data-tid");
+        const idx = Number(actEl.getAttribute("data-idx"));
+        const done = actEl.getAttribute("data-done") === "true";
+        await TRANSPORT.toggleSubtask(tid, idx, done);
+        await refreshState(false);
+        return;
+      }
+      if (action === "pop-status") {
+        const tid = actEl.getAttribute("data-tid");
+        openPopover(actEl, Object.entries(STATUS_LABELS).map(([k, lbl]) => ({
+          dot: k, label: lbl,
+          onClick: async () => { await TRANSPORT.updateTask(tid, { status: k }); await refreshState(false); },
+        })));
+        return;
+      }
+      if (action === "pop-owner") {
+        const tid = actEl.getAttribute("data-tid");
+        openPopover(actEl, ["刘俊圆", "王瑞麟", "待商定"].map(o => ({
+          label: o,
+          onClick: async () => { await TRANSPORT.updateTask(tid, { owner: o }); await refreshState(false); },
+        })));
+        return;
+      }
+      if (action === "set-composer-mode") {
+        COMPOSER_MODE = actEl.getAttribute("data-mode");
+        renderDiscussCanvas();
+        return;
+      }
+      if (action === "toggle-rule-scope") {
+        RULE_SCOPE = RULE_SCOPE === "task" ? "global" : "task";
+        renderDiscussCanvas({ preserveComposerFocus: true });
+        return;
+      }
+      if (action === "dismiss-conflict") {
+        document.getElementById("composer-conflict").classList.remove("show");
+        return;
+      }
+      if (action === "copy-ai-prompt") {
+        const tid = actEl.getAttribute("data-tid");
+        const p = `请先阅读 ONBOARDING_FOR_AI.md 与 AGENTS.md，执行 python cb.py checkpoint --task ${tid} 与 python cb.py ctx --task ${tid}，阅读最新讨论与团队规则后推进任务，完成后运行 python cb.py verify --lite 并执行 handoff。`;
+        await navigator.clipboard.writeText(p);
+        showToast(`已复制 ${tid} 的 AI 提示词`);
+        return;
+      }
+      if (action === "submit-composer") {
+        await submitComposer(actEl.getAttribute("data-tid"));
+        return;
+      }
+      if (action === "open-new-task") {
+        document.getElementById("new-task-modal").classList.add("open");
+        return;
+      }
+      if (action === "close-new-task") {
+        document.getElementById("new-task-modal").classList.remove("open");
+        return;
+      }
+      if (action === "submit-new-task") {
+        const title = document.getElementById("nt-title").value.trim();
+        if (!title) { showToast("请先填写任务标题"); return; }
+        const subs = document.getElementById("nt-subs").value.split("\n").map(x => x.trim()).filter(Boolean);
+        const created = await TRANSPORT.createTask({
+          title,
+          description: document.getElementById("nt-desc").value.trim(),
+          subtasks: subs,
+          axis: document.getElementById("nt-axis").value,
+          owner: document.getElementById("nt-owner").value,
+          case_id: document.getElementById("nt-case").value,
+          lite_compatible: document.getElementById("nt-lite").checked,
+        });
+        document.getElementById("nt-title").value = "";
+        document.getElementById("nt-desc").value = "";
+        document.getElementById("nt-subs").value = "";
+        document.getElementById("new-task-modal").classList.remove("open");
+        if (created && created.task_id) SELECTED_TASK_ID = created.task_id;
+        showToast(`已创建任务 ${SELECTED_TASK_ID}`);
+        await refreshState(false);
+        return;
+      }
+      if (action === "sync-fairy-telem") {
+        await dispatchAction("sync_telemetry", {}, "fairy");
+        return;
+      }
+      if (action === "pop-run-menu") {
+        const rSmoke = routeAction("run_smoke_fsi", "fairy");
+        const rFreeze = routeAction("freeze_baseline", "fairy");
+        const hasRunning = Object.values(STATE.local_runs || {}).some(r => r.status === "IN_PROGRESS_ON_FAIRY");
+        const isLiu = AUTH.actor === "刘俊圆";
+        const items = [
+          {
+            label: "运行 3D 冒烟自检 (60 帧)",
+            disabled: rSmoke.route === "unavailable",
+            onClick: async () => {
+              if (confirm("确认在 fairy 上运行 4 场景 × 60 帧真实 3D 冒烟自检？")) {
+                await dispatchAction("run_smoke_fsi", {}, "fairy");
+              }
+            },
+          },
+        ];
+        if (isLiu) {
+          items.push({
+            label: hasRunning ? "跑完后自动封存基线 (v2.1)" : "立即封存完整 3600 帧基线",
+            disabled: rFreeze.route === "unavailable",
+            onClick: async () => {
+              const msg = hasRunning ? "确认挂钩等待当前 3600 帧完成后自动封存并推送至仓库？" : "确认将当前 4 组完整 3600 帧结果封存为 v2.1_verified 基线？";
+              if (confirm(msg)) {
+                await dispatchAction("freeze_baseline", { tag: "v2.1_verified", when_complete: true }, "fairy");
+              }
+            },
+          });
+        }
+        openPopover(actEl, items);
+        return;
+      }
+      if (action === "darkroom-case") {
+        DARKROOM_CASE = actEl.getAttribute("data-case");
+        DARKROOM_PLAYING = false;
+        renderProgressView();
+        return;
+      }
+      if (action === "darkroom-toggle-play") {
+        DARKROOM_PLAYING = !DARKROOM_PLAYING;
+        loadDarkroomStage();
+        return;
+      }
+      if (action === "darkroom-fullscreen") {
+        const stg = document.getElementById("darkroom-stage");
+        if (stg && stg.requestFullscreen) stg.requestFullscreen();
+        return;
+      }
+      if (action === "rerun-verify-lite") {
+        const res = await dispatchAction("verify_lite", {}, "fairy");
+        if (res && res.ok !== undefined && TRANSPORT.kind === "local_agent") {
+          await refreshState(true);
+        }
+        return;
+      }
+      if (action === "copy-text") {
+        await navigator.clipboard.writeText(actEl.getAttribute("data-val") || "");
+        showToast("已复制到剪贴板");
+        return;
+      }
+      if (action === "toggle-lan-tok") {
+        LAN_TOKEN_REVEALED = !LAN_TOKEN_REVEALED;
+        renderDrawer();
+        return;
+      }
+      if (action === "logout") {
+        clearAuthCreds();
+        document.getElementById("drawer-backdrop").classList.remove("open");
+        document.getElementById("drawer").classList.remove("open");
+        openAuthModal();
+        return;
+      }
+      if (action === "invite-collab") {
+        const uname = document.getElementById("invite-username").value.trim().replace(/^@/, "");
+        if (!uname) return;
+        if (TRANSPORT.kind === "local_agent") {
+          const r = await localApi("/api/provision/invite", "POST", { username: uname });
+          showToast(r.message || "已发送邀请");
+        } else {
+          await ghFetch(`/repos/${AUTH.repo}/collaborators/${encodeURIComponent(uname)}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ permission: "push" }),
+          });
+          showToast(`已向 @${uname} 发送私有仓库协作者邀请`);
+        }
+        return;
+      }
+      if (action === "fix-item") {
+        showToast("正在补齐系统依赖...");
+        await localApi("/api/provision/fix", "POST", { fix_action: actEl.getAttribute("data-fix") });
+        await refreshState(true);
+        showToast("依赖补齐完成");
+        return;
+      }
+      if (action === "auto-fix-all") {
+        showToast("正在检查并自动补齐全部缺失依赖...");
+        await localApi("/api/provision/auto-all", "POST", { include_optional: false });
+        await refreshState(true);
+        showToast("环境自检与补齐已完成");
+      }
+    });
+
+    async function submitComposer(tid) {
+      const box = document.getElementById("composer-text");
+      const text = box ? box.value.trim() : "";
+      try {
+        if (COMPOSER_MODE === "ai") {
+          const target = document.getElementById("ai-target-sel").value;
+          const agent = document.getElementById("ai-agent-sel").value;
+          if (text) {
+            await TRANSPORT.commentTask(tid, `[AI 任务指示] ${text}`, { asDirective: false });
+          }
+          DRAFTS[tid] = "";
+          if (box) box.value = "";
+          await dispatchAction("wake_ai_task", { task_id: tid, agent }, target);
+          return;
+        }
+        if (!text) return;
+        await TRANSPORT.commentTask(tid, text, { asDirective: COMPOSER_MODE === "rule", scope: RULE_SCOPE });
+        DRAFTS[tid] = "";
+        if (box) box.value = "";
+        showToast(COMPOSER_MODE === "rule" ? "已置顶为新团队规则" : "已发送");
+        await refreshState(false);
+      } catch (e) {
+        showToast("操作失败：" + (e.message || String(e)));
+      }
+    }
+
+    document.addEventListener("keydown", e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        const box = document.getElementById("composer-text");
+        if (box && document.activeElement === box) {
+          e.preventDefault();
+          submitComposer(box.getAttribute("data-tid"));
+        }
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && document.getElementById("app").style.display !== "none") {
+        refreshState(false, true);
+      }
+    });
+
+    boot();
+  </script>
+</body>
+</html>
